@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="A&M Construction"/>
+  <title>A&M Construction and Consulting</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏗</text></svg>"/>
+  <!-- React + ReactDOM via CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for JSX transform -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #f2f2f0; font-family: Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Storage polyfill using localStorage
+    window.storage = {
+      get: async function(key) {
+        var v = localStorage.getItem(key);
+        if (v === null) throw new Error('not found');
+        return { key: key, value: v };
+      },
+      set: async function(key, value) {
+        localStorage.setItem(key, value);
+        return { key: key, value: value };
+      },
+      delete: async function(key) {
+        localStorage.removeItem(key);
+        return { key: key, deleted: true };
+      },
+      list: async function(prefix) {
+        var keys = Object.keys(localStorage).filter(function(k){ return !prefix || k.startsWith(prefix); });
+        return { keys: keys };
+      }
+    };
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useRef, useEffect } = React;
+
+
+const CSLB = {
+  "Drywall L4 Hang & Finish":         {low:2.20,high:3.20,unit:"SF"},
+  "Drywall L5 Smooth Finish":         {low:2.80,high:4.00,unit:"SF"},
+  "Framing Wood Stud Labor":          {low:5.00,high:9.00,unit:"SF"},
+  "Framing Labor + Material":         {low:12.00,high:20.00,unit:"SF"},
+  "Paint Interior Walls 2 Coats":     {low:2.50,high:4.50,unit:"SF"},
+  "Paint Exterior Stucco":            {low:3.50,high:6.00,unit:"SF"},
+  "Tile Floor Standard":              {low:10.00,high:18.00,unit:"SF"},
+  "Tile Wall Backsplash":             {low:14.00,high:26.00,unit:"SF"},
+  "Hardwood Floor Install":           {low:10.00,high:20.00,unit:"SF"},
+  "LVP Luxury Vinyl Plank":           {low:5.00,high:10.00,unit:"SF"},
+  "Cabinets Stock Supply Install":    {low:180,high:320,unit:"LF"},
+  "Cabinets Semi Custom":             {low:320,high:700,unit:"LF"},
+  "Countertop Quartz Supply Install": {low:90,high:170,unit:"SF"},
+  "Plumbing Rough In New":            {low:8.00,high:14.00,unit:"SF"},
+  "Plumbing Toilet Supply Install":   {low:450,high:900,unit:"EA"},
+  "Plumbing Water Heater Tank":       {low:900,high:2000,unit:"EA"},
+  "Electrical Rough In New":          {low:5.00,high:9.00,unit:"SF"},
+  "Electrical Panel Upgrade 200A":    {low:1800,high:4000,unit:"EA"},
+  "Electrical Recessed Light New":    {low:120,high:220,unit:"EA"},
+  "Insulation Batt Walls":            {low:1.50,high:3.00,unit:"SF"},
+  "Shower Glass Frameless Door":      {low:1400,high:3200,unit:"EA"},
+  "Concrete Flatwork Patio":          {low:8.00,high:14.00,unit:"SF"},
+  "Concrete Standard Slab":          {low:9.00,high:15.00,unit:"SF"},
+  "Demo Interior General":            {low:3.00,high:6.00,unit:"SF"},
+};
+
+const CLAUDE_MKT = {
+  "Drywall L4 Hang & Finish":         {low:2.00,high:3.50},
+  "Drywall L5 Smooth Finish":         {low:2.60,high:4.20},
+  "Framing Wood Stud Labor":          {low:4.50,high:8.50},
+  "Framing Labor + Material":         {low:11.00,high:19.00},
+  "Paint Interior Walls 2 Coats":     {low:2.25,high:4.25},
+  "Paint Exterior Stucco":            {low:3.25,high:5.75},
+  "Tile Floor Standard":              {low:9.00,high:17.00},
+  "Tile Wall Backsplash":             {low:13.00,high:25.00},
+  "Hardwood Floor Install":           {low:9.50,high:19.00},
+  "LVP Luxury Vinyl Plank":           {low:4.50,high:9.50},
+  "Cabinets Stock Supply Install":    {low:170,high:300},
+  "Cabinets Semi Custom":             {low:300,high:650},
+  "Countertop Quartz Supply Install": {low:85,high:160},
+  "Plumbing Rough In New":            {low:7.50,high:13.00},
+  "Plumbing Toilet Supply Install":   {low:425,high:850},
+  "Plumbing Water Heater Tank":       {low:850,high:1900},
+  "Electrical Rough In New":          {low:4.75,high:8.75},
+  "Electrical Panel Upgrade 200A":    {low:1700,high:3800},
+  "Electrical Recessed Light New":    {low:110,high:210},
+  "Insulation Batt Walls":            {low:1.40,high:2.80},
+  "Shower Glass Frameless Door":      {low:1350,high:3100},
+  "Concrete Flatwork Patio":          {low:7.50,high:13.50},
+  "Concrete Standard Slab":          {low:8.50,high:14.50},
+  "Demo Interior General":            {low:2.75,high:5.75},
+};
+
+const UPLOAD_SRCS = [
+  {id:"facebook",icon:"👥",label:"Facebook Group Post", color:"#1877f2",hint:"Screenshot or paste a contractor group post"},
+  {id:"text",    icon:"💬",label:"Text / iMessage",     color:"#27ae60",hint:"Screenshot or paste a text from a sub"},
+  {id:"email",   icon:"📧",label:"Email Bid",           color:"#e67e22",hint:"Screenshot or paste an email bid"},
+  {id:"photo",   icon:"📷",label:"Photo / Handwritten", color:"#8e44ad",hint:"Handwritten note, flyer, price list"},
+  {id:"receipt", icon:"🧾",label:"Receipt / Invoice",   color:"#e74c3c",hint:"Home Depot, Lowe's, any supplier"},
+  {id:"file",    icon:"📄",label:"PDF / CSV / File",    color:"#2980b9",hint:"ArcSite export, spreadsheet, document"},
+  {id:"voice",   icon:"🎤",label:"Speak a Price",       color:"#16a085",hint:"Say it out loud"},
+  {id:"paste",   icon:"📋",label:"Paste Any Text",      color:"#555",   hint:"Copy and paste from anywhere"},
+];
+
+const TRADES   = ["Demolition","Concrete","Framing","Drywall","Insulation","Roofing","Windows & Doors","Rough Carpentry","Finish Carpentry","Cabinets","Countertops","Plumbing","Electrical","HVAC","Painting","Flooring","Tile","Shower Glass","Landscaping","Clean Up","General Labor","Other"];
+const UNITS    = ["SF","LF","EA","LS","SY","CY","HR","Day","Allowance"];
+const DOC_TAGS = ["Before","After","Issue / Problem","Inspection","Materials","Measurements","Progress","Safety","General"];
+const PAY_SCHEDS = [
+  {id:"p3",label:"3-Pay",rows:[{label:"Deposit — Upon Signing",pct:33},{label:"Progress Draw — Midpoint",pct:33},{label:"Final — Completion",pct:34}]},
+  {id:"p4",label:"4-Pay",rows:[{label:"Deposit — Upon Signing",pct:25},{label:"Draw 1 — Framing Complete",pct:25},{label:"Draw 2 — Drywall Complete",pct:25},{label:"Final — Completion",pct:25}]},
+  {id:"p5",label:"5-Pay",rows:[{label:"Deposit — Upon Signing",pct:20},{label:"Draw 1 — Demo & Site Prep",pct:20},{label:"Draw 2 — Framing Complete",pct:20},{label:"Draw 3 — Drywall/Finishes",pct:20},{label:"Final — Completion",pct:20}]},
+];
+
+const STATUS_COLORS = {Active:"#27ae60",Completed:"#2980b9",Archived:"#888"};
+
+const fmtD   = n => !n||n===0 ? "—" : n>=100 ? "$"+Math.round(n).toLocaleString() : "$"+Number(n).toFixed(2);
+const fmtBig = n => "$"+Math.round(n||0).toLocaleString();
+const uid    = () => Math.random().toString(36).slice(2,9);
+const today  = () => new Date().toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"});
+const blankL = () => ({id:uid(),trade:"",description:"",qty:"",unit:"SF",unitPrice:"",notes:"",isMatl:false});
+const blankP = () => ({id:uid(),name:"",address:"",client:"",clientPhone:"",clientEmail:"",created:today(),status:"Active",estimates:[],changeOrders:[],receipts:[],fieldDocs:[]});
+
+const getSmartAvg = (key, rates) => {
+  const uploads = rates[key] || [];
+  const c = CLAUDE_MKT[key];
+  const s = CSLB[key];
+  let tw=0, ws=0;
+  uploads.forEach(r => { ws+=r.rate*3; tw+=3; });
+  if (c) { ws+=((c.low+c.high)/2)*2; tw+=2; }
+  if (s) { ws+=((s.low+s.high)/2)*1; tw+=1; }
+  return tw ? ws/tw : null;
+};
+
+const computeLines = (lines, mup) => lines.map(l => {
+  const qty=parseFloat(l.qty)||0, price=parseFloat(l.unitPrice)||0;
+  const raw=qty*price, mamt=l.isMatl?raw*(mup/100):0;
+  return {...l, qty, price, raw, mamt, total:raw+mamt};
+});
+const computeTotals = cl => ({
+  subtotal: cl.reduce((s,l)=>s+l.raw,0),
+  matMarkup: cl.reduce((s,l)=>s+l.mamt,0),
+  grand: cl.reduce((s,l)=>s+l.total,0),
+});
+
+const S = {
+  lbl:  {display:"block",fontSize:10,fontWeight:"bold",letterSpacing:1,color:"#555",textTransform:"uppercase",marginBottom:4},
+  inp:  {width:"100%",border:"1px solid #ccc",padding:"9px 11px",fontFamily:"Arial",fontSize:13,outline:"none",borderRadius:3,boxSizing:"border-box",background:"#fff"},
+  pri:  {padding:"10px 22px",background:"#000",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:"bold",fontFamily:"Arial",borderRadius:3,whiteSpace:"nowrap"},
+  grn:  {padding:"10px 22px",background:"#27ae60",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:"bold",fontFamily:"Arial",borderRadius:3,whiteSpace:"nowrap"},
+  blue: {padding:"10px 22px",background:"#2980b9",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:"bold",fontFamily:"Arial",borderRadius:3,whiteSpace:"nowrap"},
+  red:  {padding:"10px 22px",background:"#e74c3c",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:"bold",fontFamily:"Arial",borderRadius:3,whiteSpace:"nowrap"},
+  ora:  {padding:"10px 22px",background:"#e67e22",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:"bold",fontFamily:"Arial",borderRadius:3,whiteSpace:"nowrap"},
+  sec:  {padding:"10px 20px",background:"#fff",color:"#000",border:"1px solid #999",cursor:"pointer",fontSize:12,fontFamily:"Arial",borderRadius:3,whiteSpace:"nowrap"},
+  ghost:{padding:"10px 16px",background:"transparent",color:"#888",border:"1px solid #ddd",cursor:"pointer",fontSize:12,fontFamily:"Arial",borderRadius:3,whiteSpace:"nowrap"},
+};
+
+const TXT = {
+  en:{estimate:"Estimate",changeOrder:"Change Order",receipt:"Receipt",fieldDocs:"Field Docs",
+      speak:"Speak",stop:"Stop",save:"Save",print:"Print / PDF",back:"Back",
+      approved:"APPROVED",pending:"Pending Signature",addLine:"+ Add Line",total:"Total",
+      matMarkup:"Materials Markup",noProjects:"No projects yet"},
+  es:{estimate:"Presupuesto",changeOrder:"Orden de Cambio",receipt:"Recibo",fieldDocs:"Fotos de Campo",
+      speak:"Hablar",stop:"Parar",save:"Guardar",print:"Imprimir / PDF",back:"Atrás",
+      approved:"APROBADO",pending:"Pendiente de Firma",addLine:"+ Agregar Línea",total:"Total",
+      matMarkup:"Markup Materiales",noProjects:"Sin proyectos"},
+};
+
+// AI helper — no nested template literals anywhere
+const callAI = async (messages, maxTok) => {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({model:"claude-sonnet-4-20250514", max_tokens:maxTok||2000, messages})
+  });
+  const data = await res.json();
+  return (data.content||[]).map(c=>c.text||"").join("").replace(/```json|```/g,"").trim();
+};
+
+const toB64 = file => new Promise((res,rej) => {
+  const r = new FileReader();
+  r.onload = () => res(r.result.split(",")[1]);
+  r.onerror = rej;
+  r.readAsDataURL(file);
+});
+
+// ══════════════════════════════════════════════════════════════════
+export default function AMPlatform() {
+  const [screen,   setScreen]   = useState("home");
+  const [projects, setProjects] = useState([]);
+  const [projId,   setProjId]   = useState(null);
+  const [docInfo,  setDocInfo]  = useState(null); // {type, id}
+  const [rates,    setRates]    = useState({});   // learned rates
+  const [refLib,   setRefLib]   = useState([]);   // reference library entries
+  const [toast,    setToast]    = useState(null);
+  const [busy,     setBusy]     = useState(false);
+  const [busyMsg,  setBusyMsg]  = useState("");
+  const [lang,     setLang]     = useState("en");
+
+  const tx   = TXT[lang];
+  const proj = projects.find(p => p.id === projId);
+
+  useEffect(() => {
+    (async () => {
+      try { const d=await window.storage.get("amf_projects"); if(d) setProjects(JSON.parse(d.value)); } catch{}
+      try { const d=await window.storage.get("amf_rates");    if(d) setRates(JSON.parse(d.value)); }    catch{}
+      try { const d=await window.storage.get("amf_reflib");   if(d) setRefLib(JSON.parse(d.value)); }   catch{}
+    })();
+  }, []);
+
+  const saveProjs = async p => { setProjects(p); try{await window.storage.set("amf_projects",JSON.stringify(p));}catch{} };
+  const saveRates = async r => { setRates(r);    try{await window.storage.set("amf_rates",JSON.stringify(r));}catch{} };
+  const saveRefLib= async r => { setRefLib(r);   try{await window.storage.set("amf_reflib",JSON.stringify(r));}catch{} };
+  const updProj   = u => saveProjs(projects.map(p => p.id===u.id ? u : p));
+  const toast_    = (msg, type) => { setToast({msg,type}); setTimeout(()=>setToast(null),3500); };
+
+  const goBack = () => {
+    if (["quickupload","reflibrary"].includes(screen)) setScreen("home");
+    else if (["doc","fielddocs","receipt","arcsite"].includes(screen)) setScreen("project");
+    else if (screen==="project") setScreen("home");
+    else setScreen("home");
+  };
+
+  const startVoice = (onText, onEnd) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { toast_("Voice not supported","err"); return null; }
+    const rec = new SR();
+    rec.continuous = true; rec.interimResults = true;
+    rec.lang = lang==="es" ? "es-MX" : "en-US";
+    let final = "";
+    rec.onresult = e => {
+      let tmp = "";
+      for (let i=e.resultIndex; i<e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + " ";
+        else tmp += e.results[i][0].transcript;
+      }
+      onText(final + tmp);
+    };
+    rec.onerror = onEnd;
+    rec.onend   = onEnd;
+    rec.start();
+    return rec;
+  };
+
+  // Extract line items from text description
+  const extractLines = async text => {
+    setBusy(true); setBusyMsg("Reading description...");
+    try {
+      const prompt = "Construction estimating for A&M Construction LA. Extract line items from this description: " + text
+        + "\nTRADES: " + TRADES.join(", ")
+        + "\nUNITS: " + UNITS.join(", ")
+        + "\nReturn ONLY a JSON array: [{\"trade\":\"\",\"description\":\"\",\"qty\":null,\"unit\":\"SF\",\"unitPrice\":null,\"notes\":\"\",\"isMatl\":false}]";
+      const raw = await callAI([{role:"user",content:prompt}]);
+      const p = JSON.parse(raw);
+      if (!Array.isArray(p)||!p.length) { toast_("Nothing found","err"); return []; }
+      return p.map(i => ({id:uid(),trade:i.trade||"",description:i.description||"",qty:i.qty||"",unit:i.unit||"SF",unitPrice:i.unitPrice||"",notes:i.notes||"",isMatl:i.isMatl||false}));
+    } catch { toast_("Error reading description","err"); return []; }
+    finally   { setBusy(false); setBusyMsg(""); }
+  };
+
+  // Extract prices from any uploaded content
+  const extractPrices = async (content, isImg, mediaType, label) => {
+    setBusy(true); setBusyMsg("Reading " + label + "...");
+    try {
+      const textPrompt = "You are a construction price assistant for A&M Construction in Los Angeles."
+        + " Extract ALL prices from this " + label + "."
+        + (isImg ? " Analyze the image above." : " CONTENT: " + content)
+        + "\nMatch each price to the closest trade from: " + Object.keys(CSLB).join(", ")
+        + "\nReturn ONLY JSON: {\"contractor_name\":null,\"contractor_phone\":null,\"location\":null,\"summary\":\"one sentence\","
+        + "\"prices\":[{\"trade_key\":\"exact match\",\"rate\":0,\"unit\":\"SF\",\"includes\":\"labor/material/both\",\"notes\":\"\"}],"
+        + "\"data_quality\":\"high/medium/low\"}";
+      const msgs = isImg
+        ? [{role:"user",content:[{type:"image",source:{type:"base64",media_type:mediaType,data:content}},{type:"text",text:textPrompt}]}]
+        : [{role:"user",content:textPrompt}];
+      const raw = await callAI(msgs);
+      return JSON.parse(raw);
+    } catch { toast_("Could not read","err"); return null; }
+    finally   { setBusy(false); setBusyMsg(""); }
+  };
+
+  // Read ArcSite file
+  const readArcSite = async (content, isImg, mediaType) => {
+    setBusy(true); setBusyMsg("Reading ArcSite file...");
+    try {
+      const textPrompt = "You are reading an ArcSite field measurement export for A&M Construction LA."
+        + " Extract every room, area, measurement, and line item."
+        + (isImg ? " Analyze the image/PDF above." : " CONTENT: " + content)
+        + "\nReturn ONLY JSON: {\"project_name\":null,\"address\":null,\"total_sf\":null,\"notes\":\"summary\","
+        + "\"phases\":[{\"phase_name\":\"room or area\","
+        + "\"lines\":[{\"trade\":\"\",\"description\":\"\",\"qty\":0,\"unit\":\"SF\",\"arcsite_price\":null,\"category\":\"Labor\"}]}]}";
+      const msgs = isImg
+        ? [{role:"user",content:[{type:"image",source:{type:"base64",media_type:mediaType,data:content}},{type:"text",text:textPrompt}]}]
+        : [{role:"user",content:textPrompt}];
+      const raw = await callAI(msgs, 3000);
+      return JSON.parse(raw);
+    } catch { toast_("Could not read ArcSite file","err"); return null; }
+    finally   { setBusy(false); setBusyMsg(""); }
+  };
+
+  // Analyze field photo
+  const analyzePhoto = async (b64, mediaType, voiceNote) => {
+    setBusy(true); setBusyMsg("Analyzing photo...");
+    try {
+      const note = voiceNote ? " The contractor also said: " + voiceNote : "";
+      const textPrompt = "Construction documentation for A&M Construction LA." + note
+        + "\nReturn ONLY JSON: {\"title\":\"5 words max\",\"area\":\"room or area\","
+        + "\"condition\":\"good/fair/poor/needs_attention\",\"summary\":\"2-3 sentences\","
+        + "\"observations\":[],\"action_items\":[],\"suggested_tag\":\"General\",\"estimate_hint\":\"\"}";
+      const raw = await callAI([{role:"user",content:[
+        {type:"image",source:{type:"base64",media_type:mediaType,data:b64}},
+        {type:"text",text:textPrompt}
+      ]}]);
+      return JSON.parse(raw);
+    } catch {
+      return {title:"Field Photo",area:"",condition:"",summary:voiceNote||"",observations:[],action_items:[],suggested_tag:"General",estimate_hint:""};
+    }
+    finally { setBusy(false); setBusyMsg(""); }
+  };
+
+  // Save prices to reference library
+  const savePricesToLib = async (extracted, label) => {
+    if (!extracted?.prices?.length) return 0;
+    const nr = {...rates};
+    extracted.prices.forEach(p => {
+      if (!p.trade_key||!p.rate) return;
+      if (!nr[p.trade_key]) nr[p.trade_key] = [];
+      nr[p.trade_key] = [...nr[p.trade_key], {
+        rate: p.rate, unit:p.unit||"SF",
+        source: extracted.contractor_name||label,
+        sourceType: label, date:today(),
+        includes:p.includes||"", notes:p.notes||""
+      }].slice(-20);
+    });
+    await saveRates(nr);
+    const newLib = [{
+      id:uid(), date:today(), label,
+      contractor:extracted.contractor_name||null,
+      phone:extracted.contractor_phone||null,
+      location:extracted.location||null,
+      summary:extracted.summary||"",
+      count:extracted.prices.length,
+      quality:extracted.data_quality||"medium",
+      prices:extracted.prices,
+    }, ...refLib].slice(0,300);
+    await saveRefLib(newLib);
+    return extracted.prices.length;
+  };
+
+  // Generate Knowify CSV
+  const makeKnowifyCSV = (lines, phases, markup) => {
+    const rows = [["Phase","Category","Description","Qty","Unit","Unit Cost","Markup %","Notes"]];
+    if (phases && phases.length) {
+      phases.forEach(ph => ph.lines.forEach(l => {
+        if (!l.description && !l.trade) return;
+        rows.push([ph.phase, l.category||"Labor", l.description||l.trade, l.qty, l.unit, Number(l.unitCost||0).toFixed(2), markup, l.notes||""]);
+      }));
+    } else {
+      (lines||[]).forEach(l => {
+        if (!l.description) return;
+        rows.push(["General", l.isMatl?"Material":"Labor", l.description, parseFloat(l.qty)||0, l.unit, Number(parseFloat(l.unitPrice)||0).toFixed(2), markup, l.notes||""]);
+      });
+    }
+    return rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\n");
+  };
+
+  const downloadCSV = (csv, filename) => {
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a"); a.href=url; a.download=filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // HOME
+  // ══════════════════════════════════════════════════════════════
+  const Home = () => {
+    const [search, setSearch] = useState("");
+    const filtered = projects.filter(p => (p.name+p.client+p.address).toLowerCase().includes(search.toLowerCase()));
+    const pending  = projects.reduce((s,p) => s+((p.changeOrders||[]).filter(c=>!c.signedAt).length),0);
+    return (
+      <div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:11,marginBottom:14}}>
+          {[
+            {screen:"quickupload",icon:"⚡",label:"Quick Upload",  desc:"Facebook posts, sub bids, texts, receipts",color1:"#27ae60",color2:"#1e8449",sub:refLib.length+" items in library"},
+            {screen:"reflibrary", icon:"📚",label:"Price Library", desc:"Combined avg, CSLB rates, your learned rates",color1:"#2980b9",color2:"#1a5276",sub:Object.keys(rates).length+" learned rates"},
+          ].map(b => (
+            <div key={b.screen} onClick={()=>setScreen(b.screen)}
+              style={{background:"linear-gradient(135deg,"+b.color1+","+b.color2+")",borderRadius:6,padding:"16px 13px",cursor:"pointer",color:"#fff"}}
+              onMouseEnter={e=>e.currentTarget.style.opacity="0.92"}
+              onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+              <div style={{fontSize:28,marginBottom:5}}>{b.icon}</div>
+              <div style={{fontSize:13,fontWeight:"bold",marginBottom:2}}>{b.label}</div>
+              <div style={{fontSize:10,opacity:0.85,lineHeight:1.5}}>{b.desc}</div>
+              {b.sub && <div style={{fontSize:9,opacity:0.65,marginTop:4}}>{b.sub}</div>}
+            </div>
+          ))}
+        </div>
+
+        {pending > 0 && (
+          <div style={{background:"#fff3e0",border:"2px solid #e67e22",borderRadius:3,padding:"9px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:9}}>
+            <span style={{fontSize:16}}>⚠️</span>
+            <div>
+              <div style={{fontSize:12,fontWeight:"bold",color:"#e67e22"}}>{pending} Change Order{pending>1?"s":""} Pending Signature</div>
+              <div style={{fontSize:10,color:"#888"}}>Open the project to get client signature</div>
+            </div>
+          </div>
+        )}
+
+        <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search projects..." style={{...S.inp,flex:1,minWidth:140}}/>
+          <button onClick={()=>{const p=blankP();saveProjs([p,...projects]);setProjId(p.id);setScreen("project");}} style={S.pri}>+ New Project</button>
+        </div>
+
+        {filtered.length===0 && (
+          <div style={{background:"#fff",border:"1px dashed #ccc",borderRadius:3,padding:"36px",textAlign:"center",color:"#aaa"}}>
+            <div style={{fontSize:30,marginBottom:7}}>🏗</div>
+            <div style={{fontSize:13,fontWeight:"bold",color:"#888"}}>{tx.noProjects}</div>
+          </div>
+        )}
+
+        {filtered.map(p => {
+          const et = (p.estimates||[]).reduce((s,e)=>s+(e.grandTotal||0),0);
+          const ct = (p.changeOrders||[]).reduce((s,c)=>s+(c.grandTotal||0),0);
+          const pc = (p.changeOrders||[]).filter(c=>!c.signedAt).length;
+          return (
+            <div key={p.id} onClick={()=>{setProjId(p.id);setScreen("project");}}
+              style={{background:"#fff",border:"1px solid #ddd",borderRadius:3,padding:"11px 13px",marginBottom:7,cursor:"pointer"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor="#000"}
+              onMouseLeave={e=>e.currentTarget.style.borderColor="#ddd"}>
+              <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:7}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:"bold",color:"#111"}}>{p.name||"Unnamed Project"}</div>
+                  <div style={{fontSize:11,color:"#777",marginTop:1}}>{p.client && p.client+" · "}{p.address||"No address"}</div>
+                  <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
+                    <span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:(STATUS_COLORS[p.status]||"#888")+"22",color:STATUS_COLORS[p.status]||"#888",fontWeight:"bold"}}>{p.status}</span>
+                    {(p.estimates||[]).length>0 && <span style={{fontSize:9,color:"#555"}}>📋 {p.estimates.length}</span>}
+                    {(p.changeOrders||[]).length>0 && <span style={{fontSize:9,color:"#e67e22"}}>🔄 {p.changeOrders.length} CO</span>}
+                    {(p.fieldDocs||[]).length>0 && <span style={{fontSize:9,color:"#8e44ad"}}>📷 {p.fieldDocs.length}</span>}
+                    {pc>0 && <span style={{fontSize:9,color:"#e74c3c",fontWeight:"bold"}}>⚠ {pc} CO pending</span>}
+                  </div>
+                </div>
+                {(et+ct)>0 && <div style={{textAlign:"right"}}><div style={{fontSize:17,fontFamily:"monospace",fontWeight:"bold"}}>{fmtBig(et+ct)}</div></div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // PROJECT DETAIL
+  // ══════════════════════════════════════════════════════════════
+  const ProjectDetail = () => {
+    if (!proj) return null;
+    const [editing, setEditing] = useState(!proj.name);
+    const [form, setForm] = useState({...proj});
+    const saveEdit = () => { updProj(form); setEditing(false); toast_("Saved"); };
+    return (
+      <div>
+        <div style={{background:"#fff",border:"1px solid #ddd",borderRadius:3,padding:"11px 13px",marginBottom:11}}>
+          {editing ? (
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                {[["name","Project Name"],["address","Address"],["client","Client"],["clientPhone","Phone"],["clientEmail","Email"]].map(([k,l])=>(
+                  <div key={k}><div style={S.lbl}>{l}</div><input value={form[k]||""} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={S.inp}/></div>
+                ))}
+                <div><div style={S.lbl}>Status</div>
+                  <select value={form.status||"Active"} onChange={e=>setForm(f=>({...f,status:e.target.value}))} style={S.inp}>
+                    {["Active","Completed","Archived"].map(s=><option key={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:7}}><button onClick={saveEdit} style={S.grn}>Save</button><button onClick={()=>setEditing(false)} style={S.ghost}>Cancel</button></div>
+            </div>
+          ) : (
+            <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:7}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:"bold"}}>{proj.name||"Unnamed"}</div>
+                <div style={{fontSize:11,color:"#666",marginTop:1}}>{proj.address}</div>
+                {proj.client && <div style={{fontSize:11,color:"#666"}}>{proj.client}{proj.clientPhone && " · "+proj.clientPhone}</div>}
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setEditing(true)} style={S.sec}>Edit</button>
+                <button onClick={()=>{if(!window.confirm("Delete project?"))return;saveProjs(projects.filter(p=>p.id!==proj.id));setScreen("home");}} style={{...S.ghost,color:"#e74c3c",borderColor:"#e74c3c"}}>Delete</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:7,marginBottom:13}}>
+          {[
+            {icon:"📋",label:tx.estimate,    color:"#2980b9",action:()=>{setDocInfo({type:"estimate",id:null});setScreen("doc");}},
+            {icon:"🔄",label:tx.changeOrder, color:"#e67e22",action:()=>{setDocInfo({type:"co",id:null});setScreen("doc");}},
+            {icon:"📐",label:"ArcSite",       color:"#e67e22",action:()=>setScreen("arcsite")},
+            {icon:"📷",label:tx.fieldDocs,   color:"#8e44ad",action:()=>setScreen("fielddocs")},
+            {icon:"🧾",label:tx.receipt,     color:"#e74c3c",action:()=>setScreen("receipt")},
+          ].map(btn => (
+            <button key={btn.label} onClick={btn.action}
+              style={{padding:"11px 6px",border:"2px solid "+btn.color+"33",borderRadius:3,background:btn.color+"0a",cursor:"pointer",fontFamily:"Arial",textAlign:"center",width:"100%"}}
+              onMouseEnter={e=>{e.currentTarget.style.background=btn.color+"18";e.currentTarget.style.borderColor=btn.color;}}
+              onMouseLeave={e=>{e.currentTarget.style.background=btn.color+"0a";e.currentTarget.style.borderColor=btn.color+"33";}}>
+              <div style={{fontSize:18,marginBottom:2}}>{btn.icon}</div>
+              <div style={{fontSize:10,fontWeight:"bold",color:btn.color}}>{btn.label}</div>
+            </button>
+          ))}
+        </div>
+
+        {(proj.estimates||[]).length>0 && (
+          <div style={{marginBottom:10}}>
+            <div style={S.lbl}>Estimates</div>
+            {proj.estimates.map(e => (
+              <div key={e.id} onClick={()=>{setDocInfo({type:"estimate",id:e.id});setScreen("doc");}}
+                style={{background:"#fff",border:"1px solid #ddd",borderRadius:2,padding:"8px 12px",marginBottom:4,cursor:"pointer",display:"flex",justifyContent:"space-between"}}
+                onMouseEnter={ev=>ev.currentTarget.style.borderColor="#2980b9"}
+                onMouseLeave={ev=>ev.currentTarget.style.borderColor="#ddd"}>
+                <div><div style={{fontSize:12,fontWeight:"bold"}}>{e.title||"Estimate"}</div><div style={{fontSize:10,color:"#888"}}>{e.date}</div></div>
+                <div style={{fontSize:14,fontFamily:"monospace",fontWeight:"bold"}}>{fmtBig(e.grandTotal||0)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(proj.changeOrders||[]).length>0 && (
+          <div style={{marginBottom:10}}>
+            <div style={S.lbl}>Change Orders</div>
+            {proj.changeOrders.map(co => (
+              <div key={co.id} onClick={()=>{setDocInfo({type:"co",id:co.id});setScreen("doc");}}
+                style={{background:"#fff",border:"2px solid "+(co.signedAt?"#27ae60":"#e67e22"),borderRadius:2,padding:"8px 12px",marginBottom:4,cursor:"pointer",display:"flex",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontSize:12,fontWeight:"bold"}}>{co.title||"Change Order"}
+                    <span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:co.signedAt?"#e8f5e9":"#fff3e0",color:co.signedAt?"#27ae60":"#e67e22",marginLeft:6}}>{co.signedAt?tx.approved:tx.pending}</span>
+                  </div>
+                  <div style={{fontSize:10,color:"#888"}}>{co.date}{co.signedAt && " · Signed "+co.signedAt}</div>
+                </div>
+                <div style={{fontSize:14,fontFamily:"monospace",fontWeight:"bold",color:co.signedAt?"#27ae60":"#e67e22"}}>{fmtBig(co.grandTotal||0)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(proj.fieldDocs||[]).length>0 && (
+          <div style={{marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+              <div style={S.lbl}>Field Photos ({proj.fieldDocs.length})</div>
+              <button onClick={()=>setScreen("fielddocs")} style={{...S.ghost,padding:"3px 8px",fontSize:10}}>View All</button>
+            </div>
+            <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:3}}>
+              {proj.fieldDocs.slice(0,6).map(doc => (
+                <div key={doc.id} onClick={()=>setScreen("fielddocs")} style={{flexShrink:0,width:82,cursor:"pointer"}}>
+                  {doc.imageData
+                    ? <img src={doc.imageData} alt="" style={{width:82,height:62,objectFit:"cover",borderRadius:3,border:"2px solid #eee",display:"block"}}/>
+                    : <div style={{width:82,height:62,background:"#f0e8ff",borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📷</div>}
+                  <div style={{fontSize:8,color:"#666",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{doc.title||"Photo"}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(proj.receipts||[]).length>0 && (
+          <div style={{marginBottom:10}}>
+            <div style={S.lbl}>Receipts</div>
+            {proj.receipts.map(r => (
+              <div key={r.id} style={{background:"#fff",border:"1px solid #ddd",borderRadius:2,padding:"8px 12px",marginBottom:4,display:"flex",justifyContent:"space-between"}}>
+                <div><div style={{fontSize:12,fontWeight:"bold"}}>{r.vendor}</div><div style={{fontSize:10,color:"#888"}}>{r.date}</div></div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:10,color:"#aaa"}}>Cost: {fmtBig(r.cost)}</div>
+                  <div style={{fontSize:13,fontFamily:"monospace",fontWeight:"bold",color:"#e74c3c"}}>Bill: {fmtBig(r.billed)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // ESTIMATE / CHANGE ORDER EDITOR
+  // ══════════════════════════════════════════════════════════════
+  const DocEditor = () => {
+    const isCO = docInfo?.type === "co";
+    const existing = isCO
+      ? (proj?.changeOrders||[]).find(c=>c.id===docInfo?.id)
+      : (proj?.estimates||[]).find(e=>e.id===docInfo?.id);
+
+    const defTitle = isCO
+      ? "Change Order #"+((proj?.changeOrders||[]).length+1)
+      : "Estimate #"+((proj?.estimates||[]).length+1);
+
+    const [title,    setTitle]    = useState(existing?.title||defTitle);
+    const [lines,    setLines]    = useState(existing?.lines||[blankL()]);
+    const [matMup,   setMatMup]   = useState(existing?.matMarkup??25);
+    const [paySched, setPaySched] = useState(existing?.paySched||"p3");
+    const [notes,    setNotes]    = useState(existing?.notes||"");
+    const [warranty, setWarranty] = useState(existing?.warranty||"All work by A&M Construction carries a 90-day limited warranty against defects in workmanship.");
+    const [showSign, setShowSign] = useState(false);
+    const [signedAt, setSignedAt] = useState(existing?.signedAt||null);
+    const [sigData,  setSigData]  = useState(existing?.sigData||null);
+    const [docVoice, setDocVoice] = useState("");
+    const [vOn,      setVOn]      = useState(false);
+    const [showImp,  setShowImp]  = useState(false);
+    const [paste,    setPaste]    = useState("");
+    const [showRef,  setShowRef]  = useState(false);
+    const vRecRef = useRef(null);
+    const fileRef = useRef(null);
+    const sigRef  = useRef(null);
+    const sigDrwRef = useRef(false);
+
+    const computed = computeLines(lines, matMup);
+    const totals   = computeTotals(computed);
+    const payRows  = (PAY_SCHEDS.find(p=>p.id===paySched)?.rows||[]).map(r=>({...r,amount:totals.grand*(r.pct/100)}));
+
+    const startV = () => {
+      const rec = startVoice(txt => setDocVoice(txt), () => setVOn(false));
+      if (rec) { vRecRef.current=rec; setVOn(true); }
+    };
+    const stopV = () => { vRecRef.current?.stop(); setVOn(false); };
+
+    const handleVoiceFill = async () => {
+      if (!docVoice.trim()) { toast_("Speak or type first","err"); return; }
+      const nl = await extractLines(docVoice);
+      if (nl.length) { setLines(prev => [...prev.filter(l=>l.description), ...nl]); toast_(nl.length+" items added"); }
+    };
+
+    const handleFile = async e => {
+      const file = e.target.files?.[0]; if (!file) return;
+      let result;
+      if (file.type.startsWith("image/")) {
+        const b64 = await toB64(file);
+        result = await extractPrices(b64, true, file.type, "document");
+      } else {
+        const text = await file.text();
+        result = await extractPrices(text, false, null, "document");
+      }
+      if (result?.prices?.length) {
+        const newLines = result.prices.map(p => ({id:uid(),trade:p.trade_key?.split(" ")[0]||"",description:p.trade_key||"",qty:"",unit:p.unit||"SF",unitPrice:p.rate||"",notes:p.notes||"",isMatl:false}));
+        setLines(prev => [...prev.filter(l=>l.description), ...newLines]);
+        toast_(result.prices.length+" items imported");
+      }
+      e.target.value="";
+    };
+
+    const handlePaste = async () => {
+      if (!paste.trim()) { toast_("Paste text first","err"); return; }
+      const result = await extractPrices(paste, false, null, "pasted text");
+      if (result?.prices?.length) {
+        const newLines = result.prices.map(p => ({id:uid(),trade:p.trade_key?.split(" ")[0]||"",description:p.trade_key||"",qty:"",unit:p.unit||"SF",unitPrice:p.rate||"",notes:p.notes||"",isMatl:false}));
+        setLines(prev => [...prev.filter(l=>l.description), ...newLines]);
+        toast_(result.prices.length+" items imported");
+        setPaste(""); setShowImp(false);
+      }
+    };
+
+    const saveDoc = (signed, sigImg) => {
+      const doc = {
+        id: existing?.id||uid(), title, lines, matMarkup:matMup, paySched, notes, warranty,
+        date: existing?.date||today(), grandTotal:totals.grand,
+        signedAt: signed ? today() : (existing?.signedAt||null),
+        sigData: sigImg||existing?.sigData||null,
+      };
+      const updated = {...proj};
+      if (isCO) {
+        const list = proj.changeOrders||[];
+        updated.changeOrders = existing ? list.map(c=>c.id===doc.id?doc:c) : [...list,doc];
+      } else {
+        const list = proj.estimates||[];
+        updated.estimates = existing ? list.map(e=>e.id===doc.id?doc:e) : [...list,doc];
+      }
+      updProj(updated);
+      const nr = {...rates};
+      lines.forEach(l => {
+        if (l.description && l.unitPrice) {
+          const k = l.description.toLowerCase().trim();
+          if (!nr[k]) nr[k] = [];
+          nr[k] = [...nr[k], {rate:parseFloat(l.unitPrice),source:"A&M",date:today()}].slice(-10);
+        }
+      });
+      saveRates(nr);
+    };
+
+    // Signature drawing
+    const startSig = e => { sigDrwRef.current=true; drawSig(e); };
+    const endSig   = () => { sigDrwRef.current=false; };
+    const drawSig  = e => {
+      if (!sigDrwRef.current && e.type!=="mousedown" && e.type!=="touchstart") return;
+      const c = sigRef.current; if (!c) return;
+      const ctx = c.getContext("2d"), rect = c.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = cx-rect.left, y = cy-rect.top;
+      if (e.type==="mousedown"||e.type==="touchstart") { ctx.beginPath(); ctx.moveTo(x,y); }
+      else { ctx.lineTo(x,y); ctx.strokeStyle="#000"; ctx.lineWidth=2.5; ctx.stroke(); }
+    };
+    const clearSig = () => { const c=sigRef.current; if(c) c.getContext("2d").clearRect(0,0,c.width,c.height); };
+    const handleSign = () => {
+      const c = sigRef.current; if (!c) { toast_("Sign first","err"); return; }
+      const sig = c.toDataURL("image/png");
+      setSigData(sig); setSignedAt(today()); setShowSign(false);
+      saveDoc(true, sig);
+      toast_("Signed and saved!");
+    };
+
+    const getRef   = desc => { if(!desc) return null; const k=Object.keys(CSLB).find(rk=>desc.toLowerCase().split(" ").some(w=>rk.toLowerCase().includes(w)&&w.length>3)); return k?CSLB[k]:null; };
+    const getLearned=desc => { if(!desc) return null; const k=desc.toLowerCase().trim(); const r=rates[k]; if(!r?.length) return null; return r.reduce((s,x)=>s+(x.rate||0),0)/r.length; };
+
+    const knowifyExport = () => {
+      const csv = makeKnowifyCSV(computed, null, matMup);
+      downloadCSV(csv, (proj?.name||"AM").replace(/\s+/g,"_")+"_Knowify.csv");
+      toast_("Downloaded — import into Knowify Plan & Track");
+    };
+
+    return (
+      <div>
+        {/* Controls */}
+        <div style={{background:"#fff",border:"1px solid #ccc",borderRadius:2,padding:"10px 12px",marginBottom:9}}>
+          <div style={{display:"flex",gap:7,alignItems:"flex-end",flexWrap:"wrap",marginBottom:8}}>
+            <div style={{flex:1,minWidth:150}}>
+              <div style={S.lbl}>{isCO ? tx.changeOrder : tx.estimate} Title</div>
+              <input value={title} onChange={e=>setTitle(e.target.value)} style={S.inp}/>
+            </div>
+            <button onClick={()=>{saveDoc(false,null);toast_("Saved!");}} style={S.sec}>💾 {tx.save}</button>
+            <button onClick={()=>window.print()} style={S.blue}>🖨 {tx.print}</button>
+            {!isCO && <button onClick={knowifyExport} style={S.grn}>📤 Export to Knowify</button>}
+            {isCO && !signedAt && <button onClick={()=>setShowSign(true)} style={S.grn}>✍ Get Signature</button>}
+            {signedAt && <div style={{padding:"9px 12px",background:"#e8f5e9",border:"1px solid #27ae60",borderRadius:2,fontSize:11,fontWeight:"bold",color:"#27ae60"}}>✓ {tx.approved} {signedAt}</div>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:7,padding:"6px 8px",background:"#fff5f5",border:"1px solid #e74c3c44",borderRadius:2}}>
+            <span style={{fontSize:11,color:"#c0392b",fontWeight:"bold"}}>🧾 {tx.matMarkup}:</span>
+            <input type="number" value={matMup} onChange={e=>setMatMup(parseFloat(e.target.value)||0)} style={{width:50,border:"2px solid #e74c3c",textAlign:"center",padding:"3px",fontSize:14,fontWeight:"bold",fontFamily:"monospace",outline:"none",borderRadius:2,color:"#e74c3c"}}/>
+            <span style={{fontSize:13,fontWeight:"bold",color:"#e74c3c"}}>%</span>
+            <span style={{fontSize:10,color:"#888"}}>on lines marked as Materials</span>
+          </div>
+        </div>
+
+        {/* Voice + Import */}
+        <div style={{background:"#fff",border:"1px solid #ccc",borderRadius:2,padding:"10px 12px",marginBottom:9}}>
+          <div style={S.lbl}>🎤 Describe the work — speak or type</div>
+          <textarea value={docVoice} onChange={e=>setDocVoice(e.target.value)}
+            placeholder="Speak or type the scope of work... e.g. 2,400 SF remodel, level 4 drywall, paint walls and ceilings, 12 doors, hardwood floors..."
+            style={{...S.inp,minHeight:52,resize:"vertical",marginTop:3,borderColor:vOn?"#000":"#ccc"}}/>
+          {vOn && <div style={{fontSize:10,color:"#555",marginTop:3}}>● Recording...</div>}
+          <div style={{display:"flex",gap:6,marginTop:7,flexWrap:"wrap"}}>
+            <button onClick={vOn?stopV:startV} style={S.sec}>{vOn ? "⏹ "+tx.stop : "🎤 "+tx.speak}</button>
+            <button onClick={handleVoiceFill} disabled={!docVoice.trim()} style={{...S.grn,opacity:docVoice.trim()?1:0.45}}>Auto-Fill Items</button>
+            <button onClick={()=>setShowImp(!showImp)} style={S.blue}>Import</button>
+            <button onClick={()=>setShowRef(!showRef)} style={{...S.ghost,color:"#f39c12",borderColor:"#f39c12",fontSize:11}}>{showRef?"Hide":"Show"} Market Ref</button>
+          </div>
+          {showImp && (
+            <div style={{marginTop:9,borderTop:"1px solid #eee",paddingTop:8}}>
+              <input ref={fileRef} type="file" accept="image/*,.pdf,.csv,.txt" onChange={handleFile} style={{display:"none"}}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <div>
+                  <button onClick={()=>fileRef.current?.click()} style={{...S.blue,width:"100%",padding:"9px"}}>📎 Upload File / Photo</button>
+                  <div style={{fontSize:9,color:"#888",marginTop:3}}>Plans, bids, screenshots, ArcSite CSV</div>
+                </div>
+                <div>
+                  <textarea value={paste} onChange={e=>setPaste(e.target.value)}
+                    placeholder="Paste from Facebook, text, email..."
+                    style={{...S.inp,minHeight:52,resize:"vertical"}}/>
+                  <button onClick={handlePaste} disabled={!paste.trim()} style={{...S.grn,marginTop:4,opacity:paste.trim()?1:0.4,width:"100%",padding:"6px"}}>Import →</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Market ref panel */}
+        {showRef && (
+          <div style={{background:"#fffdf0",border:"2px solid #f39c12",borderRadius:2,padding:"10px 12px",marginBottom:9}}>
+            <div style={{fontSize:10,fontWeight:"bold",color:"#b7770d",marginBottom:6}}>📊 CSLB / Market Reference — LA/OC 2025</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:3}}>
+              {Object.entries(CSLB).map(([k,v]) => (
+                <div key={k} style={{background:"#fff",border:"1px solid #f39c1222",borderRadius:2,padding:"4px 7px",display:"flex",justifyContent:"space-between"}}>
+                  <div style={{fontSize:10,color:"#444"}}>{k}</div>
+                  <div style={{fontSize:9,fontFamily:"monospace",color:"#8e44ad"}}>{fmtD(v.low)}–{fmtD(v.high)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Line items */}
+        <div style={{background:"#fff",border:"1px solid #ccc",borderRadius:2,marginBottom:9,overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:"90px 1fr 52px 48px 75px 68px 28px 60px",gap:3,padding:"5px 8px",background:"#000",color:"#fff",fontSize:8,fontWeight:"bold",letterSpacing:0.8,textTransform:"uppercase"}}>
+            <div>Trade</div><div>Description</div><div style={{textAlign:"right"}}>Qty</div>
+            <div style={{textAlign:"center"}}>Unit</div><div style={{textAlign:"right"}}>Price</div>
+            <div style={{textAlign:"right"}}>Amount</div><div style={{textAlign:"center",fontSize:7}}>MAT</div>
+            <div style={{textAlign:"right",color:"#f9a825",fontSize:7}}>Ref</div>
+          </div>
+          {computed.map((line, i) => {
+            const mkt = getRef(line.description);
+            const lrn = getLearned(line.description);
+            return (
+              <div key={line.id} style={{borderBottom:"1px solid #f2f2f2",background:i%2===0?"#fff":"#fafaf8"}}>
+                <div style={{display:"grid",gridTemplateColumns:"90px 1fr 52px 48px 75px 68px 28px 60px",gap:3,padding:"4px 8px",alignItems:"center"}}>
+                  <select value={line.trade} onChange={e=>setLines(ls=>ls.map(l=>l.id===line.id?{...l,trade:e.target.value}:l))}
+                    style={{...S.inp,padding:"3px",fontSize:10,border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}>
+                    <option value="">--</option>
+                    {TRADES.map(tr=><option key={tr}>{tr}</option>)}
+                  </select>
+                  <div>
+                    <input value={line.description} onChange={e=>setLines(ls=>ls.map(l=>l.id===line.id?{...l,description:e.target.value}:l))}
+                      placeholder="Describe the work..."
+                      style={{...S.inp,padding:"3px 4px",fontSize:11,border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}/>
+                    {lrn && <div style={{fontSize:8,color:"#2a6496"}}>★ {fmtD(lrn)}/{line.unit}</div>}
+                  </div>
+                  <input type="number" value={line.qty} onChange={e=>setLines(ls=>ls.map(l=>l.id===line.id?{...l,qty:e.target.value}:l))}
+                    placeholder="0" style={{...S.inp,padding:"3px",fontSize:11,fontFamily:"monospace",textAlign:"right",border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}/>
+                  <select value={line.unit} onChange={e=>setLines(ls=>ls.map(l=>l.id===line.id?{...l,unit:e.target.value}:l))}
+                    style={{...S.inp,padding:"3px 2px",fontSize:10,border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}>
+                    {UNITS.map(u=><option key={u}>{u}</option>)}
+                  </select>
+                  <input type="number" value={line.unitPrice} onChange={e=>setLines(ls=>ls.map(l=>l.id===line.id?{...l,unitPrice:e.target.value}:l))}
+                    placeholder="0.00" style={{...S.inp,padding:"3px",fontSize:11,fontFamily:"monospace",textAlign:"right",border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}/>
+                  <div style={{textAlign:"right",fontSize:11,fontFamily:"monospace",fontWeight:"bold",color:line.total>0?"#111":"#ccc"}}>
+                    {line.total>0?fmtD(line.total):"—"}
+                    {line.mamt>0 && <div style={{fontSize:7,color:"#e74c3c"}}>+{fmtD(line.mamt)}</div>}
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <input type="checkbox" checked={!!line.isMatl} onChange={e=>setLines(ls=>ls.map(l=>l.id===line.id?{...l,isMatl:e.target.checked}:l))} style={{cursor:"pointer",width:12,height:12}}/>
+                  </div>
+                  <div style={{textAlign:"right",fontSize:8,color:"#8e44ad",lineHeight:1.3}}>
+                    {mkt ? fmtD(mkt.low)+"–"+fmtD(mkt.high) : "—"}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div style={{padding:"7px 8px",display:"flex",gap:6,borderTop:"1px solid #e8e8e8",background:"#fafafa",flexWrap:"wrap"}}>
+            <button onClick={()=>setLines(p=>[...p,blankL()])} style={S.sec}>+ {tx.addLine}</button>
+            <button onClick={()=>setLines(p=>p.filter(l=>l.description||l.unitPrice))} style={{...S.ghost,fontSize:11}}>Remove blanks</button>
+          </div>
+        </div>
+
+        {/* Totals */}
+        <div style={{background:"#fff",border:"1px solid #ccc",borderRadius:2,overflow:"hidden",marginBottom:9}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",borderBottom:"1px solid #eee"}}>
+            {[
+              {label:"Subtotal",val:fmtBig(totals.subtotal),color:"#555"},
+              {label:"Mat +"+matMup+"%",val:fmtBig(totals.matMarkup),color:"#e74c3c"},
+              {label:tx.total,val:fmtBig(totals.grand),color:"#000",bold:true},
+            ].map(({label,val,color,bold},i) => (
+              <div key={label} style={{padding:"11px 10px",borderRight:i<2?"1px solid #eee":"none",borderTop:"3px solid "+(bold?"#000":"#eee")}}>
+                <div style={{fontSize:9,color:"#999",letterSpacing:0.8,textTransform:"uppercase",marginBottom:3}}>{label}</div>
+                <div style={{fontSize:bold?21:15,fontFamily:"monospace",fontWeight:bold?"bold":"normal",color}}>{val}</div>
+              </div>
+            ))}
+          </div>
+
+          {!isCO && (
+            <div style={{padding:"9px 10px",borderBottom:"1px solid #eee"}}>
+              <div style={{display:"flex",gap:6,marginBottom:7,flexWrap:"wrap",alignItems:"center"}}>
+                <div style={{fontSize:9,fontWeight:"bold",letterSpacing:1,color:"#555",textTransform:"uppercase"}}>Payment Schedule:</div>
+                {PAY_SCHEDS.map(p => (
+                  <button key={p.id} onClick={()=>setPaySched(p.id)}
+                    style={{padding:"4px 9px",border:"2px solid "+(paySched===p.id?"#000":"#ddd"),background:paySched===p.id?"#000":"#fff",color:paySched===p.id?"#fff":"#555",fontFamily:"Arial",fontSize:10,fontWeight:"bold",cursor:"pointer",borderRadius:2}}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {payRows.map((r,i) => (
+                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 7px",background:i%2===0?"#fafafa":"#fff",borderRadius:2,marginBottom:2}}>
+                  <div style={{display:"flex",alignItems:"center",gap:7}}>
+                    <div style={{width:16,height:16,borderRadius:"50%",background:"#000",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:"bold"}}>{i+1}</div>
+                    <span style={{fontSize:11}}>{r.label}</span>
+                  </div>
+                  <span style={{fontFamily:"monospace",fontWeight:"bold",fontSize:11}}>{fmtBig(r.amount)} <span style={{fontSize:9,color:"#aaa"}}>({r.pct}%)</span></span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{padding:"9px 10px"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+              <div><div style={S.lbl}>{tx.notes}</div><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Exclusions, allowances, special conditions..." style={{...S.inp,minHeight:55,resize:"vertical"}}/></div>
+              <div><div style={S.lbl}>{tx.warranty}</div><textarea value={warranty} onChange={e=>setWarranty(e.target.value)} style={{...S.inp,minHeight:55,resize:"vertical",fontSize:10}}/></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Signature panel — Change Orders */}
+        {showSign && (
+          <div style={{background:"#fff",border:"3px solid #27ae60",borderRadius:3,padding:"15px",marginBottom:11}}>
+            <div style={{fontSize:13,fontWeight:"bold",marginBottom:4}}>✍ Client Signature</div>
+            <div style={{fontSize:11,color:"#555",marginBottom:9}}>
+              By signing, client approves this change order for <strong>{fmtBig(totals.grand)}</strong>. This will be added to the existing contract.
+            </div>
+            <canvas ref={sigRef} width={560} height={130}
+              style={{border:"2px dashed #27ae60",borderRadius:3,cursor:"crosshair",touchAction:"none",width:"100%",background:"#fafff8",display:"block"}}
+              onMouseDown={startSig} onMouseMove={drawSig} onMouseUp={endSig} onMouseLeave={endSig}
+              onTouchStart={startSig} onTouchMove={drawSig} onTouchEnd={endSig}/>
+            <div style={{fontSize:10,color:"#aaa",textAlign:"center",marginTop:3}}>Sign in the box above with finger or mouse</div>
+            <div style={{display:"flex",gap:7,marginTop:10,flexWrap:"wrap"}}>
+              <button onClick={handleSign} style={S.grn}>✓ Confirm Signature</button>
+              <button onClick={clearSig} style={S.ghost}>Clear</button>
+              <button onClick={()=>setShowSign(false)} style={S.ghost}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {signedAt && sigData && (
+          <div style={{background:"#e8f5e9",border:"2px solid #27ae60",borderRadius:3,padding:"9px 12px",marginBottom:9,display:"flex",alignItems:"center",gap:11,flexWrap:"wrap"}}>
+            <div style={{fontSize:18}}>✅</div>
+            <div>
+              <div style={{fontSize:12,fontWeight:"bold",color:"#27ae60"}}>{tx.approved} — {signedAt}</div>
+              <div style={{fontSize:10,color:"#555"}}>Client signature on file · {fmtBig(totals.grand)}</div>
+            </div>
+            <img src={sigData} alt="sig" style={{height:32,border:"1px solid #ccc",borderRadius:2,background:"#fff",marginLeft:"auto"}}/>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // ARCSITE → KNOWIFY
+  // ══════════════════════════════════════════════════════════════
+  const ArcSiteScreen = () => {
+    const [phases,   setPhases]   = useState([]);
+    const [markup,   setMarkup]   = useState(15);
+    const [imported, setImported] = useState(false);
+    const [exported, setExported] = useState(false);
+    const fileRef = useRef(null);
+
+    const handleFile = async e => {
+      const file = e.target.files?.[0]; if (!file) return;
+      let result;
+      if (file.type.startsWith("image/")||file.type==="application/pdf") {
+        const b64 = await toB64(file);
+        result = await readArcSite(b64, true, file.type||"image/jpeg");
+      } else {
+        const text = await file.text();
+        result = await readArcSite(text, false, null);
+      }
+      if (!result) { e.target.value=""; return; }
+      const built = (result.phases||[]).map(ph => ({
+        id: uid(), phase: ph.phase_name||"General",
+        lines: (ph.lines||[]).map(l => {
+          const smart = getSmartAvg(l.trade, rates);
+          return {id:uid(),trade:l.trade||"",description:l.description||"",qty:l.qty||0,unit:l.unit||"SF",unitCost:l.arcsite_price||smart||0,arcPrice:l.arcsite_price||null,category:l.category||"Labor"};
+        })
+      }));
+      setPhases(built); setImported(true); setExported(false);
+      toast_("✓ "+built.length+" phases, "+built.reduce((s,p)=>s+p.lines.length,0)+" items");
+      e.target.value="";
+    };
+
+    const grandTotal = phases.reduce((s,ph)=>s+ph.lines.reduce((ls,l)=>ls+(parseFloat(l.qty)||0)*(parseFloat(l.unitCost)||0)*(1+markup/100),0),0);
+
+    const doExport = () => {
+      const csv = makeKnowifyCSV(null, phases, markup);
+      downloadCSV(csv, (proj?.name||"AM").replace(/\s+/g,"_")+"_Knowify.csv");
+      setExported(true);
+      toast_("CSV downloaded — import into Knowify Plan & Track");
+    };
+
+    return (
+      <div>
+        <div style={{background:"#fff",border:"2px solid #e67e22",borderRadius:3,padding:"15px",marginBottom:13,textAlign:"center"}}>
+          <div style={{fontSize:28,marginBottom:7}}>📐</div>
+          <div style={{fontSize:14,fontWeight:"bold",marginBottom:4}}>ArcSite → Knowify Pipeline</div>
+          <div style={{fontSize:11,color:"#666",lineHeight:1.7,marginBottom:13,maxWidth:440,margin:"0 auto 13px"}}>
+            Upload your ArcSite export. AI reads every measurement, applies your smart pricing, and generates a Knowify-ready CSV in one tap.
+          </div>
+          <input ref={fileRef} type="file" accept="image/*,.pdf,.csv,.txt,.xlsx" onChange={handleFile} style={{display:"none"}}/>
+          {!imported
+            ? <button onClick={()=>fileRef.current?.click()} style={{...S.ora,padding:"12px 30px",fontSize:13}}>📎 Upload ArcSite File</button>
+            : <button onClick={()=>fileRef.current?.click()} style={S.sec}>Upload Different File</button>
+          }
+          <div style={{fontSize:9,color:"#aaa",marginTop:6}}>Accepts PDF · PNG · CSV · Screenshot</div>
+        </div>
+
+        {!imported && (
+          <div style={{background:"#fff8f0",border:"1px solid #e67e2233",borderRadius:3,padding:"11px 13px",marginBottom:13}}>
+            <div style={{fontSize:10,fontWeight:"bold",color:"#e67e22",marginBottom:7}}>📱 How to Export from ArcSite</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[["Option A — PDF","#e67e22"],["Option B — CSV","#2980b9"]].map(([title,color]) => (
+                <div key={title}>
+                  <div style={{fontSize:10,fontWeight:"bold",color:"#333",marginBottom:4}}>{title}</div>
+                  {["Open your job in ArcSite","Tap Share / Export","Choose Export","Save to phone","Upload here"].map((s,i) => (
+                    <div key={i} style={{display:"flex",gap:5,marginBottom:3}}>
+                      <div style={{width:14,height:14,borderRadius:"50%",background:color,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:7,fontWeight:"bold",flexShrink:0}}>{i+1}</div>
+                      <div style={{fontSize:10,color:"#555"}}>{s}</div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {imported && phases.length>0 && (
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9,flexWrap:"wrap",gap:7}}>
+              <div><div style={{fontSize:12,fontWeight:"bold"}}>Review & Adjust</div><div style={{fontSize:10,color:"#888"}}>{phases.length} phases · ★ Smart pricing applied</div></div>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <div style={{fontSize:11,color:"#555"}}>Markup:</div>
+                <input type="number" value={markup} onChange={e=>setMarkup(parseFloat(e.target.value)||0)} style={{width:48,border:"2px solid #27ae60",textAlign:"center",padding:"3px",fontSize:13,fontWeight:"bold",fontFamily:"monospace",outline:"none",borderRadius:2,color:"#27ae60"}}/>
+                <span style={{fontSize:12,fontWeight:"bold",color:"#27ae60"}}>%</span>
+              </div>
+            </div>
+
+            {phases.map(ph => (
+              <div key={ph.id} style={{background:"#fff",border:"1px solid #ddd",borderRadius:3,marginBottom:8,overflow:"hidden"}}>
+                <div style={{background:"#2c2c2c",padding:"7px 11px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <input value={ph.phase} onChange={e=>setPhases(prev=>prev.map(p=>p.id!==ph.id?p:{...p,phase:e.target.value}))}
+                    style={{background:"transparent",border:"none",color:"#fff",fontSize:12,fontWeight:"bold",fontFamily:"Arial",outline:"none",flex:1}}/>
+                  <div style={{fontSize:12,fontFamily:"monospace",fontWeight:"bold",color:"#27ae60",marginLeft:9}}>
+                    {fmtBig(ph.lines.reduce((s,l)=>s+(parseFloat(l.qty)||0)*(parseFloat(l.unitCost)||0)*(1+markup/100),0))}
+                  </div>
+                </div>
+                {ph.lines.map((l,i) => (
+                  <div key={l.id} style={{display:"grid",gridTemplateColumns:"1fr 60px 48px 82px 68px",gap:4,padding:"5px 9px",background:i%2===0?"#fff":"#fafaf8",borderBottom:"1px solid #f0f0f0",alignItems:"center"}}>
+                    <div>
+                      <input value={l.description} onChange={e=>setPhases(prev=>prev.map(p=>p.id!==ph.id?p:{...p,lines:p.lines.map(ln=>ln.id!==l.id?ln:{...ln,description:e.target.value})}))}
+                        style={{...S.inp,padding:"3px 4px",fontSize:11,border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}/>
+                      {l.arcPrice && <div style={{fontSize:8,color:"#e67e22"}}>ArcSite: {fmtD(l.arcPrice)}</div>}
+                    </div>
+                    <input type="number" value={l.qty} onChange={e=>setPhases(prev=>prev.map(p=>p.id!==ph.id?p:{...p,lines:p.lines.map(ln=>ln.id!==l.id?ln:{...ln,qty:e.target.value})}))}
+                      style={{...S.inp,padding:"3px",fontSize:11,fontFamily:"monospace",textAlign:"right",border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}/>
+                    <div style={{fontSize:10,textAlign:"center",color:"#777"}}>{l.unit}</div>
+                    <input type="number" value={l.unitCost} onChange={e=>setPhases(prev=>prev.map(p=>p.id!==ph.id?p:{...p,lines:p.lines.map(ln=>ln.id!==l.id?ln:{...ln,unitCost:e.target.value})}))}
+                      style={{...S.inp,padding:"3px",fontSize:11,fontFamily:"monospace",textAlign:"right",border:"none",borderBottom:"1px solid #e0e0e0",background:"transparent"}}/>
+                    <div style={{fontSize:11,fontFamily:"monospace",fontWeight:"bold",textAlign:"right",color:"#333"}}>
+                      {fmtBig((parseFloat(l.qty)||0)*(parseFloat(l.unitCost)||0)*(1+markup/100))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            <div style={{background:"#fff",border:"2px solid #27ae60",borderRadius:3,padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:13}}>
+              <div>
+                <div style={{fontSize:9,color:"#aaa",marginBottom:2}}>TOTAL · {markup}% markup</div>
+                <div style={{fontSize:22,fontFamily:"monospace",fontWeight:"bold"}}>{fmtBig(grandTotal)}</div>
+              </div>
+              <button onClick={doExport} style={{...S.grn,padding:"11px 28px",fontSize:13}}>📤 Export to Knowify CSV</button>
+            </div>
+
+            {exported && (
+              <div style={{background:"#e8f5e9",border:"2px solid #27ae60",borderRadius:3,padding:"13px 15px",marginBottom:13}}>
+                <div style={{fontSize:12,fontWeight:"bold",color:"#27ae60",marginBottom:8}}>✅ CSV Downloaded — Import into Knowify</div>
+                {[
+                  ["1","Open Knowify","Log in at knowify.com or open the app."],
+                  ["2","Create New Job","Click New Job. Enter client name, address, contract type Fixed Price."],
+                  ["3","Go to Plan & Track","Inside the job, click the Plan & Track or Budget tab."],
+                  ["4","Click Import","Click Import top right. Choose Upload File."],
+                  ["5","Upload Your CSV","Select the CSV you downloaded. Knowify maps columns automatically."],
+                  ["6","Review & Save","Confirm phases and line items. Click Save. Done."],
+                  ["7","QuickBooks Syncs","Knowify syncs to QuickBooks Online automatically. No double entry."],
+                ].map(([num,title,body]) => (
+                  <div key={num} style={{display:"flex",gap:9,marginBottom:7,alignItems:"flex-start"}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",background:"#27ae60",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:"bold",flexShrink:0,marginTop:1}}>{num}</div>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:"bold",color:"#111",marginBottom:1}}>{title}</div>
+                      <div style={{fontSize:10,color:"#555",lineHeight:1.5}}>{body}</div>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={doExport} style={{...S.sec,marginTop:5}}>⬇ Download Again</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // QUICK UPLOAD
+  // ══════════════════════════════════════════════════════════════
+  const QuickUpload = () => {
+    const [activeSrc, setActiveSrc] = useState(null);
+    const [paste,     setPaste]     = useState("");
+    const [voiceTxt,  setVoiceTxt]  = useState("");
+    const [vOn,       setVOn]       = useState(false);
+    const [result,    setResult]    = useState(null);
+    const [saved,     setSaved]     = useState(false);
+    const fileRef = useRef(null);
+    const vRec    = useRef(null);
+
+    const startV = () => {
+      const rec = startVoice(txt => setVoiceTxt(txt), () => setVOn(false));
+      if (rec) { vRec.current=rec; setVOn(true); }
+    };
+    const stopV  = () => { vRec.current?.stop(); setVOn(false); };
+
+    const handleFile = async e => {
+      const file = e.target.files?.[0]; if (!file) return;
+      const src  = UPLOAD_SRCS.find(s=>s.id===activeSrc);
+      let r;
+      if (file.type.startsWith("image/")) {
+        const b64 = await toB64(file);
+        r = await extractPrices(b64, true, file.type, src?.label||"photo");
+      } else {
+        const text = await file.text();
+        r = await extractPrices(text, false, null, src?.label||"file");
+      }
+      if (r) { setResult(r); setSaved(false); }
+      e.target.value="";
+    };
+
+    const handlePaste = async () => {
+      if (!paste.trim()) { toast_("Paste first","err"); return; }
+      const src = UPLOAD_SRCS.find(s=>s.id===activeSrc);
+      const r = await extractPrices(paste, false, null, src?.label||"text");
+      if (r) { setResult(r); setSaved(false); }
+    };
+
+    const handleVoice = async () => {
+      if (!voiceTxt.trim()) { toast_("Speak first","err"); return; }
+      const r = await extractPrices(voiceTxt, false, null, "voice note");
+      if (r) { setResult(r); setSaved(false); }
+    };
+
+    const saveIt = async () => {
+      const src = UPLOAD_SRCS.find(s=>s.id===activeSrc);
+      const count = await savePricesToLib(result, src?.label||"upload");
+      if (count) { setSaved(true); toast_("✓ "+count+" price"+(count!==1?"s":"")+" saved — averages updated"); }
+    };
+
+    const reset = () => { setActiveSrc(null); setPaste(""); setVoiceTxt(""); setResult(null); setSaved(false); };
+
+    return (
+      <div>
+        <div style={{marginBottom:13}}>
+          <div style={{fontSize:14,fontWeight:"bold",marginBottom:3}}>⚡ Quick Upload</div>
+          <div style={{fontSize:11,color:"#666",lineHeight:1.6}}>Upload anything with a price. AI reads it and saves to your Reference Library automatically.</div>
+        </div>
+
+        {!activeSrc && !result && (
+          <div>
+            <div style={{fontSize:10,fontWeight:"bold",letterSpacing:1,color:"#555",textTransform:"uppercase",marginBottom:8}}>What are you uploading?</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:8}}>
+              {UPLOAD_SRCS.map(src => (
+                <button key={src.id} onClick={()=>setActiveSrc(src.id)}
+                  style={{padding:"13px 9px",border:"2px solid "+src.color+"33",borderRadius:4,background:src.color+"08",cursor:"pointer",textAlign:"left",fontFamily:"Arial",width:"100%"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=src.color;e.currentTarget.style.background=src.color+"15";}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=src.color+"33";e.currentTarget.style.background=src.color+"08";}}>
+                  <div style={{fontSize:20,marginBottom:4}}>{src.icon}</div>
+                  <div style={{fontSize:11,fontWeight:"bold",color:"#111",marginBottom:2}}>{src.label}</div>
+                  <div style={{fontSize:9,color:"#888",lineHeight:1.4}}>{src.hint}</div>
+                </button>
+              ))}
+            </div>
+            {refLib.length>0 && (
+              <div style={{marginTop:13}}>
+                <div style={S.lbl}>Recent Uploads</div>
+                {refLib.slice(0,3).map(e => (
+                  <div key={e.id} style={{background:"#fff",border:"1px solid #ddd",borderRadius:2,padding:"8px 11px",marginBottom:4}}>
+                    <div style={{fontSize:11,fontWeight:"bold"}}>{e.contractor||e.label}</div>
+                    <div style={{fontSize:10,color:"#777"}}>{e.summary}</div>
+                    <div style={{fontSize:9,color:"#aaa"}}>{e.date} · {e.count} price{e.count!==1?"s":""}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeSrc && !result && (
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:11}}>
+              <button onClick={reset} style={S.ghost}>← Change</button>
+              <div style={{fontSize:13,fontWeight:"bold"}}>{UPLOAD_SRCS.find(s=>s.id===activeSrc)?.icon} {UPLOAD_SRCS.find(s=>s.id===activeSrc)?.label}</div>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*,.pdf,.csv,.txt" onChange={handleFile} style={{display:"none"}}/>
+            {activeSrc==="voice" ? (
+              <div style={{background:"#fff",border:"2px solid #16a085",borderRadius:4,padding:"16px"}}>
+                <div style={{fontSize:10,color:"#666",marginBottom:8}}>Say it out loud — e.g. "Mike does drywall level 4 at $2.75 per square foot labor only in the Inland Empire."</div>
+                <textarea value={voiceTxt} onChange={e=>setVoiceTxt(e.target.value)} placeholder="Speak or type a price note..."
+                  style={{...S.inp,minHeight:75,resize:"vertical",marginBottom:8,borderColor:vOn?"#16a085":"#ccc"}}/>
+                {vOn && <div style={{fontSize:10,color:"#16a085",marginBottom:6}}>● Recording...</div>}
+                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                  <button onClick={vOn?stopV:startV} style={{...S.sec,borderColor:"#16a085",color:"#16a085"}}>{vOn ? "⏹ "+tx.stop : "🎤 "+tx.speak}</button>
+                  <button onClick={handleVoice} disabled={!voiceTxt.trim()} style={{...S.grn,opacity:voiceTxt.trim()?1:0.45}}>Read & Save →</button>
+                </div>
+              </div>
+            ) : activeSrc==="paste" ? (
+              <div style={{background:"#fff",border:"2px solid #555",borderRadius:4,padding:"16px"}}>
+                <textarea value={paste} onChange={e=>setPaste(e.target.value)}
+                  placeholder="Paste from Facebook, text message, email, anywhere..."
+                  style={{...S.inp,minHeight:100,resize:"vertical",marginBottom:8}}/>
+                <button onClick={handlePaste} disabled={!paste.trim()} style={{...S.pri,opacity:paste.trim()?1:0.45}}>Read & Save →</button>
+              </div>
+            ) : (
+              <div style={{background:"#fff",border:"2px solid "+(UPLOAD_SRCS.find(s=>s.id===activeSrc)?.color||"#ccc"),borderRadius:4,padding:"16px"}}>
+                <button onClick={()=>fileRef.current?.click()}
+                  style={{...S.pri,background:UPLOAD_SRCS.find(s=>s.id===activeSrc)?.color||"#000",width:"100%",padding:"12px",fontSize:13,marginBottom:11}}>
+                  📎 Upload File / Photo
+                </button>
+                <div style={{fontSize:9,color:"#aaa",textAlign:"center",marginBottom:9}}>— or paste text instead —</div>
+                <textarea value={paste} onChange={e=>setPaste(e.target.value)}
+                  placeholder="Paste from Facebook, text, email..."
+                  style={{...S.inp,minHeight:65,resize:"vertical",marginBottom:7}}/>
+                {paste.trim() && <button onClick={handlePaste} style={{...S.grn,width:"100%",padding:"9px"}}>Read Pasted Text →</button>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {result && (
+          <div style={{background:"#fff",border:"2px solid #27ae60",borderRadius:3,padding:"15px",marginBottom:11}}>
+            <div style={{fontSize:13,fontWeight:"bold",marginBottom:4}}>✅ Found {result.prices?.length||0} price{result.prices?.length!==1?"s":""}</div>
+            {result.summary && <div style={{fontSize:11,color:"#666",marginBottom:9}}>{result.summary}</div>}
+            {result.contractor_name && (
+              <div style={{padding:"6px 9px",background:"#f0f7ff",borderRadius:2,marginBottom:8,fontSize:11}}>
+                👤 <strong>{result.contractor_name}</strong>
+                {result.contractor_phone && " · "+result.contractor_phone}
+                {result.location && " · "+result.location}
+              </div>
+            )}
+            {(result.prices||[]).map((p,i) => (
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 9px",background:i%2===0?"#fafafa":"#fff",borderRadius:2,marginBottom:2}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:"bold",color:"#111"}}>{p.trade_key}</div>
+                  {p.includes && <div style={{fontSize:9,color:"#888"}}>{p.includes}{p.notes && " · "+p.notes}</div>}
+                </div>
+                <div style={{fontSize:15,fontFamily:"monospace",fontWeight:"bold",color:"#27ae60",marginLeft:11}}>{fmtD(p.rate)}<span style={{fontSize:9,fontWeight:"normal",color:"#aaa"}}>/{p.unit||"SF"}</span></div>
+              </div>
+            ))}
+            <div style={{display:"flex",gap:7,marginTop:11,flexWrap:"wrap"}}>
+              {!saved
+                ? <button onClick={saveIt} style={S.grn}>💾 Save to Library & Update Averages</button>
+                : <div style={{padding:"9px 13px",background:"#e8f5e9",border:"1px solid #27ae60",borderRadius:3,fontSize:11,fontWeight:"bold",color:"#27ae60"}}>✓ Saved</div>}
+              <button onClick={reset} style={S.sec}>Upload Another</button>
+              {saved && <button onClick={()=>setScreen("reflibrary")} style={S.ghost}>View Library →</button>}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // REFERENCE LIBRARY
+  // ══════════════════════════════════════════════════════════════
+  const RefLibrary = () => {
+    const [search, setSearch] = useState("");
+    const totalUploads = Object.values(rates).reduce((s,arr)=>s+arr.length,0);
+    return (
+      <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:11,flexWrap:"wrap",gap:8}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:"bold"}}>📚 Reference Library</div>
+            <div style={{fontSize:10,color:"#888",marginTop:1}}>{totalUploads} uploaded rates · auto-calculates combined average</div>
+          </div>
+          <button onClick={()=>setScreen("quickupload")} style={S.grn}>+ Add New</button>
+        </div>
+
+        <div style={{background:"#fff",border:"1px solid #ddd",borderRadius:3,padding:"11px 13px",marginBottom:11}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            {[
+              {color:"#27ae60",icon:"⚡",label:"Your Uploads",weight:"3×",desc:"Real field data. Highest weight."},
+              {color:"#2980b9",icon:"🔬",label:"Claude Research",weight:"2×",desc:"Independent LA/OC market research."},
+              {color:"#8e44ad",icon:"📋",label:"CSLB / Union",weight:"1×",desc:"Board & union prevailing wage."},
+            ].map(col => (
+              <div key={col.label} style={{padding:"8px 10px",borderLeft:"4px solid "+col.color,background:col.color+"08",borderRadius:2}}>
+                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
+                  <span style={{fontSize:13}}>{col.icon}</span>
+                  <span style={{fontSize:10,fontWeight:"bold",color:col.color}}>{col.label}</span>
+                  <span style={{fontSize:8,padding:"1px 5px",background:col.color,color:"#fff",borderRadius:10,fontWeight:"bold"}}>{col.weight}</span>
+                </div>
+                <div style={{fontSize:9,color:"#666",lineHeight:1.5}}>{col.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search trades..." style={{...S.inp,marginBottom:9}}/>
+
+        {/* Three column table */}
+        <div style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1fr 1fr",gap:4,padding:"6px 10px",background:"#000",color:"#fff",borderRadius:"3px 3px 0 0",fontSize:8,fontWeight:"bold",letterSpacing:0.8,textTransform:"uppercase"}}>
+          <div>Trade</div>
+          <div style={{textAlign:"center",color:"#5dade2"}}>⚡ Your Avg</div>
+          <div style={{textAlign:"center",color:"#58d68d"}}>🎯 Combined</div>
+          <div style={{textAlign:"center",color:"#bb8fce"}}>📋 CSLB</div>
+        </div>
+        {Object.entries(CSLB).filter(([k])=>!search||k.toLowerCase().includes(search.toLowerCase())).map(([key,cslb],i) => {
+          const uploads  = rates[key]||[];
+          const smartAvg = getSmartAvg(key, rates);
+          const yourAvg  = uploads.length ? uploads.reduce((s,r)=>s+r.rate,0)/uploads.length : null;
+          return (
+            <div key={key} style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1fr 1fr",gap:4,padding:"8px 10px",background:i%2===0?"#fff":"#fafaf8",borderBottom:"1px solid #eee",alignItems:"center",borderLeft:"3px solid "+(uploads.length>0?"#27ae60":"#eee")}}>
+              <div>
+                <div style={{fontSize:10,fontWeight:"bold",color:"#111"}}>{key}</div>
+                {uploads.length>0 && <div style={{fontSize:7,color:"#27ae60"}}>{uploads.length} upload{uploads.length>1?"s":""}</div>}
+              </div>
+              <div style={{textAlign:"center"}}>
+                {yourAvg
+                  ? <div style={{fontSize:14,fontFamily:"monospace",fontWeight:"bold",color:"#2980b9"}}>{fmtD(yourAvg)}</div>
+                  : <div style={{fontSize:9,color:"#ccc",fontStyle:"italic"}}>No uploads</div>}
+              </div>
+              <div style={{textAlign:"center"}}>
+                {smartAvg
+                  ? <div style={{fontSize:18,fontFamily:"monospace",fontWeight:"bold",color:uploads.length>0?"#27ae60":"#f39c12"}}>{fmtD(smartAvg)}</div>
+                  : <div style={{fontSize:9,color:"#ccc"}}>—</div>}
+              </div>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:10,fontFamily:"monospace",color:"#8e44ad"}}>{fmtD(cslb.low)}–{fmtD(cslb.high)}</div>
+                <div style={{fontSize:7,color:"#aaa"}}>{cslb.unit}</div>
+              </div>
+            </div>
+          );
+        })}
+        <div style={{fontSize:8,color:"#aaa",textAlign:"center",marginTop:7,lineHeight:1.6}}>
+          Combined = your uploads (3×) + Claude research (2×) + CSLB/Union (1×) · auto-updates every upload
+        </div>
+
+        {refLib.length>0 && (
+          <div style={{marginTop:14}}>
+            <div style={S.lbl}>Upload History ({refLib.length})</div>
+            {refLib.map(entry => (
+              <div key={entry.id} style={{background:"#fff",border:"1px solid #ddd",borderRadius:3,padding:"9px 12px",marginBottom:5}}>
+                <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
+                  <div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                      <span style={{fontSize:12}}>{UPLOAD_SRCS.find(s=>s.label===entry.label)?.icon||"📄"}</span>
+                      <span style={{fontSize:11,fontWeight:"bold"}}>{entry.contractor||entry.label}</span>
+                      {entry.location && <span style={{fontSize:8,padding:"2px 5px",borderRadius:10,background:"#f0f0f0",color:"#555"}}>{entry.location}</span>}
+                    </div>
+                    {entry.summary && <div style={{fontSize:10,color:"#666"}}>{entry.summary}</div>}
+                    <div style={{fontSize:8,color:"#aaa",marginTop:1}}>{entry.date} · {entry.count} price{entry.count!==1?"s":""}</div>
+                  </div>
+                  <button onClick={()=>{if(window.confirm("Delete?"))saveRefLib(refLib.filter(e=>e.id!==entry.id));}}
+                    style={{...S.ghost,padding:"3px 7px",fontSize:9,color:"#e74c3c",borderColor:"#e74c3c"}}>Delete</button>
+                </div>
+                {entry.prices?.length>0 && (
+                  <div style={{display:"flex",flexWrap:"wrap",gap:3,marginTop:6}}>
+                    {entry.prices.map((p,i) => (
+                      <div key={i} style={{padding:"2px 7px",background:"#f5f5f3",borderRadius:10,fontSize:8,color:"#333"}}>
+                        {(p.trade_key||"").split(" ")[0]} · <strong style={{color:"#27ae60"}}>{fmtD(p.rate)}/{p.unit||"SF"}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // FIELD DOCS
+  // ══════════════════════════════════════════════════════════════
+  const FieldDocs = () => {
+    const [adding,  setAdding]  = useState(false);
+    const [imgData, setImgData] = useState(null);
+    const [imgType, setImgType] = useState("image/jpeg");
+    const [vTxt,    setVTxt]    = useState("");
+    const [vOn,     setVOn]     = useState(false);
+    const [tag,     setTag]     = useState("General");
+    const [loc,     setLoc]     = useState("");
+    const [aiRes,   setAiRes]   = useState(null);
+    const [viewId,  setViewId]  = useState(null);
+    const [filter,  setFilter]  = useState("All");
+    const vRec = useRef(null);
+    const pRef = useRef(null);
+
+    const docs  = proj?.fieldDocs||[];
+    const fDocs = filter==="All" ? docs : docs.filter(d=>d.tag===filter);
+
+    const startV = () => {
+      const rec = startVoice(txt => setVTxt(txt), () => setVOn(false));
+      if (rec) { vRec.current=rec; setVOn(true); }
+    };
+    const stopV  = () => { vRec.current?.stop(); setVOn(false); };
+
+    const handlePhoto = async e => {
+      const file = e.target.files?.[0]; if (!file) return;
+      const b64  = await toB64(file);
+      setImgData("data:"+file.type+";base64,"+b64);
+      setImgType(file.type||"image/jpeg");
+      const res = await analyzePhoto(b64, file.type||"image/jpeg", vTxt);
+      setAiRes(res);
+      if (res.suggested_tag) setTag(res.suggested_tag);
+      e.target.value="";
+    };
+
+    const saveDoc = () => {
+      if (!imgData && !vTxt.trim()) { toast_("Add a photo or voice note first","err"); return; }
+      const doc = {
+        id:uid(), date:today(), imageData:imgData||null, voiceNote:vTxt||"",
+        tag, location:loc,
+        title: aiRes?.title || vTxt.split(" ").slice(0,4).join(" ") || "Field Photo",
+        area: aiRes?.area||loc||"", condition:aiRes?.condition||"",
+        summary:aiRes?.summary||vTxt||"",
+        observations:aiRes?.observations||[],
+        actionItems:aiRes?.action_items||[],
+        estimateHint:aiRes?.estimate_hint||"",
+      };
+      updProj({...proj, fieldDocs:[doc,...(proj.fieldDocs||[])]});
+      setAdding(false); setImgData(null); setVTxt(""); setAiRes(null); setTag("General"); setLoc("");
+      toast_("Photo saved");
+    };
+
+    const viewDoc = docs.find(d=>d.id===viewId);
+
+    if (viewId && viewDoc) return (
+      <div>
+        <div style={{display:"flex",gap:7,marginBottom:10,flexWrap:"wrap"}}>
+          <button onClick={()=>setViewId(null)} style={S.sec}>← Back</button>
+          <button onClick={()=>{if(window.confirm("Delete?"))updProj({...proj,fieldDocs:docs.filter(d=>d.id!==viewId)});setViewId(null);}}
+            style={{...S.ghost,color:"#e74c3c",borderColor:"#e74c3c"}}>Delete</button>
+        </div>
+        <div style={{background:"#fff",border:"1px solid #ddd",borderRadius:3,overflow:"hidden"}}>
+          {viewDoc.imageData && <img src={viewDoc.imageData} alt="" style={{width:"100%",maxHeight:340,objectFit:"cover",display:"block"}}/>}
+          <div style={{padding:"13px 15px"}}>
+            <div style={{fontSize:13,fontWeight:"bold",marginBottom:2}}>{viewDoc.title}</div>
+            <div style={{fontSize:10,color:"#888",marginBottom:8}}>
+              {viewDoc.date}{viewDoc.area && " · "+viewDoc.area}
+              {" · "}<span style={{padding:"2px 6px",borderRadius:10,background:"#f0e8ff",color:"#8e44ad",fontWeight:"bold",fontSize:9}}>{viewDoc.tag}</span>
+            </div>
+            {viewDoc.summary && <div style={{fontSize:11,color:"#333",lineHeight:1.7,padding:"8px 10px",background:"#f9f9f7",borderRadius:2,borderLeft:"3px solid #8e44ad",marginBottom:8}}>{viewDoc.summary}</div>}
+            {viewDoc.voiceNote && <div style={{fontSize:11,color:"#555",padding:"7px 9px",background:"#f0f0ff",borderRadius:2,borderLeft:"3px solid #2980b9",marginBottom:8}}>🎤 {viewDoc.voiceNote}</div>}
+            {viewDoc.actionItems?.length>0 && (
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:9,fontWeight:"bold",color:"#e67e22",textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Action Items</div>
+                {viewDoc.actionItems.map((a,i) => <div key={i} style={{fontSize:11,padding:"4px 8px",background:"#fff8f0",borderRadius:2,borderLeft:"3px solid #e67e22",marginBottom:2}}>▶ {a}</div>)}
+              </div>
+            )}
+            {viewDoc.estimateHint && <div style={{fontSize:10,color:"#2980b9",padding:"6px 9px",background:"#f0f7ff",borderRadius:2,borderLeft:"3px solid #2980b9"}}>💡 {viewDoc.estimateHint}</div>}
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:7}}>
+          <div style={{fontSize:13,fontWeight:"bold"}}>📷 Field Docs — {proj?.name}</div>
+          <button onClick={()=>setAdding(true)} style={S.grn}>+ Add Photo</button>
+        </div>
+
+        {adding && (
+          <div style={{background:"#fff",border:"2px solid #8e44ad",borderRadius:3,padding:"14px",marginBottom:12}}>
+            <input ref={pRef} type="file" accept="image/*" onChange={handlePhoto} style={{display:"none"}}/>
+            {imgData
+              ? <div style={{position:"relative",marginBottom:10}}>
+                  <img src={imgData} alt="" style={{width:"100%",maxHeight:240,objectFit:"cover",borderRadius:3,display:"block"}}/>
+                  <button onClick={()=>{setImgData(null);setAiRes(null);}} style={{position:"absolute",top:7,right:7,background:"rgba(0,0,0,0.6)",color:"#fff",border:"none",borderRadius:"50%",width:24,height:24,cursor:"pointer",fontSize:12}}>×</button>
+                </div>
+              : <button onClick={()=>pRef.current?.click()} style={{...S.pri,background:"#8e44ad",width:"100%",padding:"13px",fontSize:13,marginBottom:10}}>📷 Take Photo or Choose from Library</button>}
+
+            <div style={S.lbl}>🎤 Describe what you see</div>
+            <textarea value={vTxt} onChange={e=>setVTxt(e.target.value)}
+              placeholder="Speak or type what you see and what needs to be done..."
+              style={{...S.inp,minHeight:58,resize:"vertical",marginTop:3,marginBottom:7,borderColor:vOn?"#8e44ad":"#ccc"}}/>
+            {vOn && <div style={{fontSize:10,color:"#8e44ad",marginBottom:5}}>● Recording...</div>}
+
+            <div style={{display:"flex",gap:7,marginBottom:10,flexWrap:"wrap"}}>
+              <button onClick={vOn?stopV:startV} style={{...S.sec,borderColor:"#8e44ad",color:"#8e44ad"}}>{vOn ? "⏹ Stop" : "🎤 Speak"}</button>
+              {imgData && <button onClick={async()=>{const b64=imgData.split(",")[1];const res=await analyzePhoto(b64,imgType,vTxt);setAiRes(res);if(res.suggested_tag)setTag(res.suggested_tag);}} style={{...S.pri,background:"#8e44ad"}}>🤖 Analyze</button>}
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+              <div><div style={S.lbl}>Tag</div><select value={tag} onChange={e=>setTag(e.target.value)} style={S.inp}>{DOC_TAGS.map(tg=><option key={tg}>{tg}</option>)}</select></div>
+              <div><div style={S.lbl}>Area / Location</div><input value={loc} onChange={e=>setLoc(e.target.value)} placeholder="e.g. Master Bath..." style={S.inp}/></div>
+            </div>
+
+            {aiRes && (
+              <div style={{background:"#f9f0ff",border:"1px solid #8e44ad44",borderRadius:2,padding:"9px 11px",marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:"bold",color:"#8e44ad",marginBottom:4}}>🤖 AI Analysis</div>
+                <div style={{fontSize:11,color:"#333",lineHeight:1.6}}>{aiRes.summary}</div>
+                {aiRes.action_items?.length>0 && aiRes.action_items.map((a,i)=><div key={i} style={{fontSize:10,color:"#555",marginTop:2}}>▶ {a}</div>)}
+              </div>
+            )}
+
+            <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+              <button onClick={saveDoc} style={S.grn}>💾 Save</button>
+              <button onClick={()=>{setAdding(false);setImgData(null);setVTxt("");setAiRes(null);}} style={S.ghost}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap"}}>
+          {["All",...DOC_TAGS].map(tg => (
+            <button key={tg} onClick={()=>setFilter(tg)}
+              style={{padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontFamily:"Arial",fontSize:9,fontWeight:"bold",background:filter===tg?"#8e44ad":"#e8e8e8",color:filter===tg?"#fff":"#555",whiteSpace:"nowrap"}}>
+              {tg}
+            </button>
+          ))}
+        </div>
+
+        {fDocs.length===0 && !adding && (
+          <div style={{background:"#fff",border:"1px dashed #ccc",borderRadius:3,padding:"32px",textAlign:"center",color:"#aaa"}}>
+            <div style={{fontSize:26,marginBottom:5}}>📷</div>
+            <div style={{fontSize:11,fontWeight:"bold",color:"#888"}}>No field photos yet</div>
+          </div>
+        )}
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(165px,1fr))",gap:9}}>
+          {fDocs.map(doc => (
+            <div key={doc.id} onClick={()=>setViewId(doc.id)}
+              style={{background:"#fff",border:"1px solid #ddd",borderRadius:3,overflow:"hidden",cursor:"pointer"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="#8e44ad";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="#ddd";}}>
+              {doc.imageData
+                ? <img src={doc.imageData} alt="" style={{width:"100%",height:120,objectFit:"cover",display:"block"}}/>
+                : <div style={{width:"100%",height:120,background:"#f0e8ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>📷</div>}
+              <div style={{padding:"7px 8px"}}>
+                <div style={{fontSize:10,fontWeight:"bold",color:"#111",lineHeight:1.3}}>{doc.title}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:2}}>
+                  <span style={{fontSize:8,padding:"1px 5px",borderRadius:10,background:"#f0e8ff",color:"#8e44ad",fontWeight:"bold"}}>{doc.tag}</span>
+                  <span style={{fontSize:8,color:"#aaa"}}>{doc.date}</span>
+                </div>
+                {doc.actionItems?.length>0 && <div style={{fontSize:8,color:"#e67e22",marginTop:2}}>▶ {doc.actionItems.length} action item{doc.actionItems.length>1?"s":""}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // RECEIPT
+  // ══════════════════════════════════════════════════════════════
+  const ReceiptScreen = () => {
+    const [mup, setMup] = useState(25);
+    const rf = useRef(null);
+
+    const scanReceipt = async file => {
+      setBusy(true); setBusyMsg("Reading receipt...");
+      try {
+        const b64 = await toB64(file);
+        const textPrompt = "Read this receipt or invoice for A&M Construction."
+          + " Return ONLY JSON: {\"vendor\":\"store name\",\"date\":\"date or null\","
+          + "\"items\":[{\"description\":\"item\",\"qty\":1,\"unitCost\":0,\"total\":0}],"
+          + "\"subtotal\":0,\"tax\":0,\"total\":0}";
+        const raw = await callAI([{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:b64}},
+          {type:"text",text:textPrompt}
+        ]}]);
+        const p = JSON.parse(raw);
+        const rec = {
+          id:uid(), date:p.date||today(), vendor:p.vendor||"Unknown",
+          items:p.items||[], cost:p.total||0, markup:mup,
+          billed:(p.total||0)*(1+mup/100),
+        };
+        updProj({...proj, receipts:[rec,...(proj?.receipts||[])]});
+        toast_("Receipt saved: "+rec.vendor+" · Cost "+fmtBig(rec.cost)+" → Bill "+fmtBig(rec.billed));
+        setScreen("project");
+      } catch { toast_("Receipt scan failed","err"); }
+      finally   { setBusy(false); setBusyMsg(""); }
+    };
+
+    return (
+      <div style={{background:"#fff",border:"2px solid #e74c3c",borderRadius:3,padding:"16px"}}>
+        <div style={S.lbl}>🧾 Scan Receipt / Invoice</div>
+        <div style={{fontSize:11,color:"#888",marginBottom:11}}>Home Depot, Lowe's, any supplier — AI reads every line, markup applied automatically</div>
+        <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:13}}>
+          <div style={{fontSize:11,fontWeight:"bold",color:"#c0392b"}}>Materials Markup:</div>
+          <input type="number" value={mup} onChange={e=>setMup(parseFloat(e.target.value)||0)}
+            style={{width:54,border:"2px solid #e74c3c",textAlign:"center",padding:"4px",fontSize:15,fontWeight:"bold",fontFamily:"monospace",outline:"none",borderRadius:2,color:"#e74c3c"}}/>
+          <span style={{fontSize:12,fontWeight:"bold",color:"#e74c3c"}}>%</span>
+        </div>
+        <input ref={rf} type="file" accept="image/*,.pdf" onChange={e=>{const f=e.target.files?.[0];if(f)scanReceipt(f);e.target.value="";}} style={{display:"none"}}/>
+        <button onClick={()=>rf.current?.click()} style={{...S.red,padding:"12px 24px",fontSize:13}}>📷 Upload Receipt Photo</button>
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // MAIN RENDER
+  // ══════════════════════════════════════════════════════════════
+  const screenLabels = {home:"Home",quickupload:"⚡ Quick Upload",reflibrary:"📚 Reference Library",project:proj?.name||"Project",doc:docInfo?.type==="co"?"Change Order":"Estimate",arcsite:"📐 ArcSite → Knowify",fielddocs:"Field Docs",receipt:"Receipt"};
+
+  return (
+    <div style={{fontFamily:"Arial,sans-serif",background:"#f2f2f0",minHeight:"100vh"}}>
+      <style>{"@media print{.np{display:none!important}body{background:white!important;margin:0}} @page{margin:0.6in;size:letter} *{box-sizing:border-box}"}</style>
+
+      {toast && <div style={{position:"fixed",top:18,right:18,zIndex:9999,background:toast.type==="err"?"#8b0000":"#1a4a1a",color:"#fff",padding:"9px 16px",borderRadius:3,fontSize:12,boxShadow:"0 2px 10px rgba(0,0,0,.3)",maxWidth:360}}>{toast.msg}</div>}
+
+      {busy && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:"#fff",padding:"24px 36px",borderRadius:4,textAlign:"center",minWidth:220}}>
+            <div style={{fontSize:26,marginBottom:7}}>🤖</div>
+            <div style={{fontSize:12,fontWeight:"bold"}}>{busyMsg||"AI is working..."}</div>
+            <div style={{marginTop:10,height:3,background:"#f0f0f0",borderRadius:2,overflow:"hidden"}}>
+              <div style={{height:"100%",background:"#27ae60",width:"60%",animation:"slide 1.4s ease-in-out infinite"}}/>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{"@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}"}</style>
+
+      <div style={{maxWidth:980,margin:"0 auto",paddingBottom:40}}>
+
+        {/* Header */}
+        <div className="np" style={{background:"#000",padding:"10px 14px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              {screen!=="home" && <button onClick={goBack} style={{background:"transparent",border:"1px solid #444",color:"#aaa",padding:"4px 9px",fontSize:10,fontFamily:"Arial",borderRadius:2,cursor:"pointer"}}>← Back</button>}
+              <div>
+                <div style={{fontSize:13,fontWeight:"bold",color:"#fff",letterSpacing:0.5}}>A&M CONSTRUCTION AND CONSULTING</div>
+                <div style={{fontSize:8,color:"#777"}}>{screenLabels[screen]||""}{proj && screen!=="home" && screen!=="project" ? " — "+proj.name : ""}</div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:7,alignItems:"center"}}>
+              <button onClick={()=>setLang(l=>l==="en"?"es":"en")} style={{background:"transparent",border:"1px solid #444",color:"#bbb",padding:"3px 8px",fontSize:9,fontFamily:"Arial",fontWeight:"bold",borderRadius:2,cursor:"pointer"}}>{lang==="en"?"🇲🇽 ES":"🇺🇸 EN"}</button>
+              <div style={{fontSize:8,color:"#555"}}>CSLB #1148491 · (909) 830-3350</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom nav */}
+        <div className="np" style={{background:"#1a1a1a",display:"flex",borderBottom:"3px solid #27ae60"}}>
+          {[{id:"home",icon:"🏠",label:"Home"},{id:"quickupload",icon:"⚡",label:"Upload"},{id:"reflibrary",icon:"📚",label:"Library"}].map(tab => (
+            <button key={tab.id} onClick={()=>setScreen(tab.id)}
+              style={{flex:1,padding:"8px 3px",background:screen===tab.id?"#27ae60":"transparent",border:"none",cursor:"pointer",color:screen===tab.id?"#fff":"#777",fontFamily:"Arial",fontSize:10,fontWeight:"bold"}}>
+              <div style={{fontSize:15}}>{tab.icon}</div>
+              <div style={{fontSize:8,marginTop:1}}>{tab.label}</div>
+            </button>
+          ))}
+        </div>
+
+        <div style={{padding:"14px 12px"}}>
+          {screen==="home"        && <Home/>}
+          {screen==="quickupload" && <QuickUpload/>}
+          {screen==="reflibrary"  && <RefLibrary/>}
+          {screen==="project"     && <ProjectDetail/>}
+          {screen==="doc"         && <DocEditor/>}
+          {screen==="arcsite"     && <ArcSiteScreen/>}
+          {screen==="fielddocs"   && <FieldDocs/>}
+          {screen==="receipt"     && <ReceiptScreen/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+    // Mount the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(AMPlatform));
+  </script>
+</body>
+</html>
