@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>A&M Estimating Brain</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --orange:#FF6B1A;--orange-dark:#D94F00;
+  --bg:#0F1117;--surface:#1A1D27;--surface2:#22263A;
+  --border:#2E3450;--text:#F0F2FF;--muted:#8A90B0;
+  --green:#22C55E;--blue:#3B82F6;--yellow:#F59E0B;--red:#EF4444;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+input,textarea,select,button{font-family:'Barlow',sans-serif}
+
+/* HEADER */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-badge{width:36px;height:36px;background:var(--orange);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;color:#fff;flex-shrink:0}
+.hdr-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;line-height:1}
+.hdr-sub{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.ai-indicator{display:flex;align-items:center;gap:5px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--green)}
+.ai-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* TABS */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;gap:0}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:80px;padding:11px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;color:var(--muted)}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange)}
+.tab-icon{font-size:18px}
+.tab-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+
+/* SCREENS */
+.screen{display:none;padding:16px;max-width:560px;margin:0 auto;padding-bottom:100px}
+.screen.active{display:block}
+
+/* SECTION HEADS */
+.sec-head{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;margin-top:20px}
+.sec-head:first-child{margin-top:0}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:var(--text);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+
+/* FORM ELEMENTS */
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.field-row.single{grid-template-columns:1fr}
+.field-row.three{grid-template-columns:1fr 1fr 1fr}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px}
+.field-input{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;width:100%;transition:border-color 0.15s}
+.field-input:focus{border-color:var(--orange)}
+.field-input::placeholder{color:var(--muted)}
+select.field-input{cursor:pointer}
+select.field-input option{background:var(--surface2)}
+textarea.field-input{resize:vertical;min-height:80px;font-size:13px;line-height:1.5}
+
+/* BUTTONS */
+.btn{padding:12px 20px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.5px;cursor:pointer;border:none;transition:all 0.15s;display:flex;align-items:center;gap:6px;justify-content:center}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-primary:active{background:var(--orange-dark)}
+.btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.btn-secondary:active{border-color:var(--orange);color:var(--orange)}
+.btn-green{background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3)}
+.btn-red{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3)}
+.btn-block{width:100%}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:8px}
+
+/* SCOPE LINE ITEMS */
+.scope-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;position:relative}
+.scope-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.scope-name{font-weight:600;font-size:13px;color:var(--text);line-height:1.3;flex:1}
+.scope-remove{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1;flex-shrink:0}
+.scope-remove:active{color:var(--red)}
+.scope-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.scope-num{display:flex;flex-direction:column;gap:2px}
+.scope-num-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.scope-num-val{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700}
+.scope-num-val.mat{color:var(--green)}
+.scope-num-val.lab{color:var(--blue)}
+.scope-num-val.cost{color:var(--text)}
+.scope-num-val.price{color:var(--orange)}
+.scope-history-hint{margin-top:6px;padding:6px 8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:7px;font-size:11px;color:var(--yellow);line-height:1.4}
+.scope-history-hint b{color:var(--yellow)}
+
+/* TOTALS STRIP */
+.totals-strip{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;position:sticky;bottom:16px;z-index:50}
+.totals-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.total-item{display:flex;flex-direction:column;gap:2px}
+.total-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px}
+.total-val{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800}
+.total-val.mat{color:var(--green)}
+.total-val.lab{color:var(--blue)}
+.total-val.cost{color:var(--text)}
+.total-val.price{color:var(--orange);font-size:20px}
+
+/* JOB HISTORY CARDS */
+.job-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s}
+.job-card:active{border-color:var(--orange);transform:scale(0.99)}
+.job-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.job-card-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;line-height:1.1;flex:1}
+.job-card-price{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:var(--orange);flex-shrink:0}
+.job-card-meta{display:flex;flex-wrap:wrap;gap:8px}
+.job-meta-pill{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;color:var(--muted)}
+.job-meta-pill.loc{color:var(--blue);border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.08)}
+
+/* SUB BID CARDS */
+.bid-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+.bid-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bid-sub-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px}
+.bid-total{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:var(--green)}
+.bid-item-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.bid-item-row:last-child{border-bottom:none}
+.bid-item-desc{color:var(--text);flex:1}
+.bid-item-price{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--green);flex-shrink:0;margin-left:8px}
+
+/* TREND / COMPARISON */
+.trend-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+.trend-scope{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;margin-bottom:10px}
+.trend-bar-wrap{margin-bottom:6px}
+.trend-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px}
+.trend-bar-name{color:var(--muted);font-weight:500}
+.trend-bar-val{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px}
+.trend-bar-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.trend-bar-fill{height:100%;border-radius:4px;transition:width 0.5s ease}
+.trend-change{display:flex;align-items:center;gap:6px;margin-top:8px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600}
+.trend-change.up{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+.trend-change.down{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
+.trend-change.same{background:rgba(138,144,176,0.1);color:var(--muted);border:1px solid var(--border)}
+
+/* AI CHAT */
+.ai-output{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px;font-size:13px;line-height:1.7;color:var(--text);min-height:60px}
+.ai-output .ai-thinking{color:var(--muted);font-style:italic}
+.ai-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:0.4}
+.empty-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px}
+.empty-text{font-size:13px;line-height:1.6}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border);border-radius:30px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;z-index:500;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* COMPARE BADGE */
+.cmp-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.cmp-up{background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
+.cmp-down{background:rgba(34,197,94,0.12);color:var(--green);border:1px solid rgba(34,197,94,0.25)}
+.cmp-same{background:rgba(138,144,176,0.1);color:var(--muted);border:1px solid var(--border)}
+
+/* LOCATION PILL ROW */
+.loc-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.loc-pill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all 0.15s}
+.loc-pill.active{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.4);color:var(--blue)}
+
+/* UPLOAD ZONE */
+.upload-zone{background:var(--surface);border:2px dashed var(--orange);border-radius:16px;padding:22px 16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:all 0.2s;position:relative}
+.upload-zone:hover,.upload-zone.drag-over{background:rgba(255,107,26,0.07);border-color:var(--orange)}
+.upload-zone.loading{opacity:0.7;pointer-events:none}
+.upload-icon{font-size:36px;margin-bottom:8px}
+.upload-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;color:var(--text);margin-bottom:4px}
+.upload-sub{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.upload-chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+.upload-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--muted)}
+.upload-cta{background:var(--orange);color:#fff;display:inline-block;padding:10px 24px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.5px}
+.meas-result{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
+.meas-result-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.meas-result-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:17px;color:var(--green)}
+.meas-result-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.meas-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px}
+.meas-row:last-child{border-bottom:none}
+.meas-row-left{flex:1}
+.meas-row-name{font-size:13px;font-weight:600;color:var(--text)}
+.meas-row-detail{font-size:11px;color:var(--muted);margin-top:2px}
+.meas-row-val{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--orange);white-space:nowrap}
+.meas-add-btn{background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:var(--green);border-radius:8px;padding:5px 12px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.meas-add-btn:active{background:rgba(34,197,94,0.3)}
+.meas-add-btn.added{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);color:var(--blue)}
+/* TAX SECTION */
+.tax-strip{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.tax-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.tax-row:last-child{margin-bottom:0}
+.tax-label{font-size:12px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:0.8px}
+.tax-val{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--yellow)}
+.tax-toggle{display:flex;align-items:center;gap:8px;cursor:pointer}
+.tax-toggle input[type=checkbox]{width:16px;height:16px;accent-color:var(--orange);cursor:pointer}
+.tax-note{font-size:11px;color:var(--muted);margin-top:4px}
+
+.meas-add-all{width:100%;margin-top:10px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="hdr-left">
+    <div class="hdr-badge">A&M</div>
+    <div>
+      <div class="hdr-title">Estimating Brain</div>
+      <div class="hdr-sub">A&M Construction · CSLB #1148491</div>
+    </div>
+  </div>
+  <div class="ai-indicator"><div class="ai-dot"></div>AI Live</div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('estimate')"><div class="tab-icon">📋</div><div class="tab-label">Estimate</div></div>
+  <div class="tab" onclick="switchTab('history')"><div class="tab-icon">📁</div><div class="tab-label">History</div></div>
+  <div class="tab" onclick="switchTab('bids')"><div class="tab-icon">📄</div><div class="tab-label">Sub Bids</div></div>
+  <div class="tab" onclick="switchTab('trends')"><div class="tab-icon">📈</div><div class="tab-label">Trends</div></div>
+  <div class="tab" onclick="switchTab('ai')"><div class="tab-icon">🤖</div><div class="tab-label">AI Ask</div></div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN: ESTIMATE                    -->
+<!-- ═══════════════════════════════════ -->
+<div id="screen-estimate" class="screen active">
+
+  <!-- MEASUREMENT UPLOAD -->
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('meas-file').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+    <div class="upload-icon">📐</div>
+    <div class="upload-title">Import Measurements</div>
+    <div class="upload-sub">ArcSite · Magicplan · Canvas · PlanSwift · Any PDF, screenshot, or export file</div>
+    <div class="upload-chips">
+      <div class="upload-chip">📄 PDF Report</div>
+      <div class="upload-chip">🖼️ Screenshot</div>
+      <div class="upload-chip">📊 CSV / Text</div>
+      <div class="upload-chip">📱 Any App Export</div>
+    </div>
+    <div class="upload-cta">📂 Tap to Upload — AI Reads It</div>
+  </div>
+  <input type="file" id="meas-file" accept=".pdf,.png,.jpg,.jpeg,.csv,.txt,.json,image/*" style="display:none" onchange="handleMeasFile(this)">
+  <div id="meas-result-wrap" style="display:none"></div>
+
+  <!-- Job Info -->
+  <div class="sec-head">Job Info</div>
+  <div class="card">
+    <div class="field-row single">
+      <div class="field-group">
+        <div class="field-label">Job Name / Client</div>
+        <input class="field-input" id="job-name" type="text" placeholder="e.g. Smith Kitchen Remodel">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <div class="field-label">City / Neighborhood</div>
+        <input class="field-input" id="job-city" type="text" placeholder="e.g. La Verne, Pasadena">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Area</div>
+        <select class="field-input" id="job-area">
+          <option value="IE">Inland Empire</option>
+          <option value="LA">Los Angeles</option>
+          <option value="OC">Orange County</option>
+          <option value="SGV">San Gabriel Valley</option>
+          <option value="SFV">San Fernando Valley</option>
+          <option value="LBC">Long Beach / South Bay</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <div class="field-label">Estimate Date</div>
+        <input class="field-input" id="job-date" type="date">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Job Type</div>
+        <select class="field-input" id="job-type">
+          <option value="remodel">Remodel / TI</option>
+          <option value="new">New Construction</option>
+          <option value="repair">Repair / Service</option>
+          <option value="commercial">Commercial</option>
+          <option value="adu">ADU</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Markup Settings -->
+  <div class="sec-head">Your Markups</div>
+  <div class="card">
+    <div class="field-row three">
+      <div class="field-group">
+        <div class="field-label">Mat Markup %</div>
+        <input class="field-input" id="mat-markup" type="number" value="25" min="0" max="100" oninput="recalcAll()">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Labor Markup %</div>
+        <input class="field-input" id="lab-markup" type="number" value="20" min="0" max="100" oninput="recalcAll()">
+      </div>
+      <div class="field-group">
+        <div class="field-label">GC Profit %</div>
+        <input class="field-input" id="gc-profit" type="number" value="15" min="0" max="100" oninput="recalcAll()">
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TAX SECTION -->
+  <div class="sec-head">Tax</div>
+  <div class="tax-strip">
+    <div class="tax-row">
+      <div class="field-group" style="flex:1">
+        <div class="field-label" style="color:var(--yellow)">Sales Tax Rate % (on materials)</div>
+        <input class="field-input" id="tax-rate" type="number" value="10.25" min="0" max="15" step="0.01" oninput="recalcAll()" style="max-width:120px">
+        <div class="tax-note">LA County: 10.25% · La Verne: 10.25% · OC: 7.75%–9.25%</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="tax-label">Materials Tax</div>
+        <div class="tax-val" id="tax-mat-display">$0</div>
+      </div>
+    </div>
+    <div class="tax-row">
+      <label class="tax-toggle">
+        <input type="checkbox" id="tax-pass-to-client" checked onchange="recalcAll()">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">Pass tax through to client price</span>
+      </label>
+      <div style="text-align:right">
+        <div class="tax-label">Total w/ Tax</div>
+        <div class="tax-val" id="tax-total-display">$0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Scope -->
+  <div class="sec-head">Add Scope Items</div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field-group">
+        <div class="field-label">Trade</div>
+        <select class="field-input" id="add-trade" onchange="populateItems()">
+          <option value="">-- Select Trade --</option>
+          <option value="concrete">Concrete / Site Work</option>
+          <option value="framing">Framing</option>
+          <option value="roofing">Roofing</option>
+          <option value="drywall">Drywall</option>
+          <option value="electrical">Electrical</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="hvac">HVAC</option>
+          <option value="painting">Painting</option>
+          <option value="tile">Tile / Stone</option>
+          <option value="flooring">Flooring</option>
+          <option value="stucco">Stucco / Plaster</option>
+          <option value="masonry">Masonry / Block</option>
+          <option value="cabinets">Cabinets / Millwork</option>
+          <option value="insulation">Insulation</option>
+          <option value="fencing">Fencing / Gates</option>
+          <option value="solar">Solar</option>
+          <option value="demo">Demolition</option>
+          <option value="other">Other / Custom</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Scope Item</div>
+        <select class="field-input" id="add-item">
+          <option value="">-- Select trade first --</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row three">
+      <div class="field-group">
+        <div class="field-label">Qty</div>
+        <input class="field-input" id="add-qty" type="number" placeholder="0" min="0" step="any">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Unit</div>
+        <input class="field-input" id="add-unit" type="text" placeholder="SF, LF, EA…">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Description</div>
+        <input class="field-input" id="add-desc" type="text" placeholder="brief scope note">
+      </div>
+    </div>
+    <div class="field-row three">
+      <div class="field-group">
+        <div class="field-label">Mat $/Unit (your cost)</div>
+        <input class="field-input" id="add-mat" type="number" placeholder="0.00" step="any" min="0">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Labor $/Unit (your cost)</div>
+        <input class="field-input" id="add-lab" type="number" placeholder="0.00" step="any" min="0">
+      </div>
+      <div class="field-group" style="justify-content:flex-end">
+        <div class="field-label">&nbsp;</div>
+        <button class="btn btn-primary" onclick="addScope()">＋ Add Line</button>
+      </div>
+    </div>
+    <div id="add-history-hint" style="display:none" class="scope-history-hint"></div>
+  </div>
+
+  <!-- Scope Lines -->
+  <div class="sec-head">Estimate Lines <span id="scope-count" style="color:var(--orange)"></span></div>
+  <div id="scope-list">
+    <div class="empty-state" id="scope-empty">
+      <div class="empty-icon">📏</div>
+      <div class="empty-title">No scopes yet</div>
+      <div class="empty-text">Select a trade and add line items above</div>
+    </div>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals-strip" id="totals-strip" style="display:none">
+    <div class="totals-row">
+      <div class="total-item"><div class="total-label">Materials</div><div class="total-val mat" id="t-mat">$0</div></div>
+      <div class="total-item"><div class="total-label">Labor</div><div class="total-val lab" id="t-lab">$0</div></div>
+      <div class="total-item"><div class="total-label">Tax</div><div class="total-val" style="color:var(--yellow)" id="t-tax">$0</div></div>
+      <div class="total-item"><div class="total-label">Your Price</div><div class="total-val price" id="t-price">$0</div></div>
+    </div>
+  </div>
+
+  <!-- Save -->
+  <div id="save-row" style="display:none;gap:10px;margin-top:8px">
+    <button class="btn btn-primary btn-block" onclick="saveJob()">💾 Save to History</button>
+    <button class="btn btn-secondary btn-block" style="margin-top:8px" onclick="window.print()">🖨️ Print Estimate</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN: HISTORY                    -->
+<!-- ═══════════════════════════════════ -->
+<div id="screen-history" class="screen">
+  <div class="sec-head">Saved Jobs</div>
+
+  <div class="loc-pills" id="hist-filters">
+    <div class="loc-pill active" onclick="filterHistory('all',this)">All Areas</div>
+    <div class="loc-pill" onclick="filterHistory('IE',this)">Inland Empire</div>
+    <div class="loc-pill" onclick="filterHistory('LA',this)">Los Angeles</div>
+    <div class="loc-pill" onclick="filterHistory('OC',this)">Orange County</div>
+    <div class="loc-pill" onclick="filterHistory('SGV',this)">San Gabriel Valley</div>
+  </div>
+
+  <div id="history-list">
+    <div class="empty-state">
+      <div class="empty-icon">📁</div>
+      <div class="empty-title">No jobs saved yet</div>
+      <div class="empty-text">Save an estimate from the Estimate tab and it will appear here with full history tracking.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN: SUB BIDS                   -->
+<!-- ═══════════════════════════════════ -->
+<div id="screen-bids" class="screen">
+  <div class="sec-head">Upload Sub Proposal</div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field-group">
+        <div class="field-label">Sub / Company Name</div>
+        <input class="field-input" id="bid-sub" type="text" placeholder="e.g. Martinez Electric">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Trade</div>
+        <select class="field-input" id="bid-trade">
+          <option value="electrical">Electrical</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="hvac">HVAC</option>
+          <option value="roofing">Roofing</option>
+          <option value="concrete">Concrete</option>
+          <option value="framing">Framing</option>
+          <option value="drywall">Drywall</option>
+          <option value="painting">Painting</option>
+          <option value="tile">Tile</option>
+          <option value="flooring">Flooring</option>
+          <option value="masonry">Masonry</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <div class="field-label">Location / Job Site</div>
+        <input class="field-input" id="bid-loc" type="text" placeholder="City or neighborhood">
+      </div>
+      <div class="field-group">
+        <div class="field-label">Area</div>
+        <select class="field-input" id="bid-area">
+          <option value="IE">Inland Empire</option>
+          <option value="LA">Los Angeles</option>
+          <option value="OC">Orange County</option>
+          <option value="SGV">San Gabriel Valley</option>
+          <option value="SFV">San Fernando Valley</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row single">
+      <div class="field-group">
+        <div class="field-label">Paste the proposal text here — AI will read it and pull out all line items and pricing</div>
+        <textarea class="field-input" id="bid-text" style="min-height:140px" placeholder="Paste the sub's proposal or bid here. Include all line items, prices, scope notes — AI will extract everything automatically."></textarea>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" id="bid-parse-btn" onclick="parseBid()">🤖 Read & Save Bid with AI</button>
+    <div id="bid-ai-output" class="ai-output" style="display:none"><span class="ai-thinking">Reading proposal…</span></div>
+  </div>
+
+  <div class="sec-head">Saved Sub Bids</div>
+  <div id="bids-list">
+    <div class="empty-state">
+      <div class="empty-icon">📄</div>
+      <div class="empty-title">No sub bids yet</div>
+      <div class="empty-text">Paste a sub proposal above — AI will extract the line items, pricing, and scope and store it in your database.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN: TRENDS                     -->
+<!-- ═══════════════════════════════════ -->
+<div id="screen-trends" class="screen">
+  <div class="sec-head">Price Trends — Your Market Data</div>
+  <div id="trends-content">
+    <div class="empty-state">
+      <div class="empty-icon">📈</div>
+      <div class="empty-title">Building your price history</div>
+      <div class="empty-text">As you save jobs and sub bids, this screen will show you how prices are moving in your market — by scope, trade, and area. The more data you add, the smarter it gets.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!-- SCREEN: AI ASK                     -->
+<!-- ═══════════════════════════════════ -->
+<div id="screen-ai" class="screen">
+  <div class="sec-head">Ask AI About Your Jobs</div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Ask anything about your pricing, job history, or market. Examples: <em style="color:var(--text)">"What did I charge for drywall last year?"</em> · <em style="color:var(--text)">"How much did plumbing cost in my last 3 jobs?"</em> · <em style="color:var(--text)">"Am I charging enough for roofing in LA?"</em></div>
+    <div class="field-row single">
+      <div class="field-group">
+        <textarea class="field-input" id="ai-question" style="min-height:80px" placeholder="Ask anything about your estimates, history, or market pricing…"></textarea>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" id="ai-ask-btn" onclick="askAI()">🤖 Ask AI</button>
+    <div id="ai-answer" class="ai-output" style="display:none"><span class="ai-thinking">Thinking…</span></div>
+  </div>
+
+  <div class="sec-head">Quick Questions</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-secondary" onclick="quickAsk('Give me a summary of my most recent saved job and what I charged.')">📋 Summarize last job</button>
+    <button class="btn btn-secondary" onclick="quickAsk('Which trade or scope has gone up the most in price in my history?')">📈 What\'s gotten more expensive?</button>
+    <button class="btn btn-secondary" onclick="quickAsk('Compare my sub bid prices to my own labor rates — am I getting good deals from subs?')">🔍 Are my sub prices good?</button>
+    <button class="btn btn-secondary" onclick="quickAsk('What is my average gross profit margin across all saved jobs?')">💰 My average profit margin</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// SCOPE DATABASE — every trade, every line item
+// mat = your material cost/unit, lab = your labor cost/unit
+// indLow/indHigh = LA/IE industry range total $/unit
+// ══════════════════════════════════════════════════════
+const SCOPE_DB = {
+  concrete:[
+    {name:"Concrete slab / flatwork",unit:"SF",mat:3.50,lab:4.50,indLow:8,indHigh:18,note:"3000 PSI, 4\" thick, wire mesh"},
+    {name:"Concrete driveway",unit:"SF",mat:4.00,lab:5.00,indLow:9,indHigh:20,note:"6\" thick, broom finish"},
+    {name:"Foundation — slab on grade",unit:"SF",mat:5.00,lab:7.00,indLow:10,indHigh:22,note:"Footing + slab residential"},
+    {name:"Footing — continuous linear",unit:"LF",mat:18,lab:22,indLow:45,indHigh:90,note:"18\"×12\" poured footing"},
+    {name:"Retaining wall — CMU block",unit:"LF",mat:22,lab:28,indLow:55,indHigh:90,note:"6-ft standard block + mortar"},
+    {name:"Concrete curb & gutter",unit:"LF",mat:12,lab:16,indLow:30,indHigh:60,note:"6\" curb, poured in place"},
+    {name:"Grading / earthwork",unit:"SY",mat:2,lab:8,indLow:12,indHigh:30,note:"Cut & fill, residential lot"},
+    {name:"Demolition — interior selective",unit:"SF",mat:0.50,lab:3.50,indLow:3,indHigh:8,note:"Non-structural, haul away"},
+    {name:"Concrete patch / repair",unit:"SF",mat:5,lab:10,indLow:18,indHigh:40,note:"Cut, prep, pour, finish"},
+    {name:"Concrete steps",unit:"EA",mat:300,lab:350,indLow:800,indHigh:2000,note:"Per step, standard width"},
+    {name:"Pier / caisson drilling",unit:"EA",mat:200,lab:400,indLow:800,indHigh:2500,note:"Drilled pier, 12\" dia."},
+  ],
+  framing:[
+    {name:"Wood framing — new house",unit:"SF",mat:7,lab:9,indLow:14,indHigh:30,note:"Lumber + hardware, 2×6 exterior"},
+    {name:"Interior non-bearing wall",unit:"LF",mat:12,lab:16,indLow:25,indHigh:55,note:"2×4 @ 16\" OC, single plate"},
+    {name:"Interior bearing wall",unit:"LF",mat:18,lab:22,indLow:35,indHigh:70,note:"2×6, double top plate, header"},
+    {name:"Roof framing — conventional",unit:"SF",mat:5,lab:7,indLow:9,indHigh:20,note:"Rafters, ridge, blocking"},
+    {name:"Floor framing — joists",unit:"SF",mat:6,lab:7,indLow:10,indHigh:22,note:"2×10 joists, LVL beam, posts"},
+    {name:"Wall sheathing — OSB",unit:"SF",mat:1.50,lab:1.50,indLow:2.50,indHigh:5,note:"7/16\" OSB, nailed"},
+    {name:"Roof sheathing — plywood",unit:"SF",mat:2.00,lab:2.00,indLow:3,indHigh:6,note:"5/8\" CDX plywood"},
+    {name:"LVL beam installation",unit:"LF",mat:20,lab:18,indLow:35,indHigh:75,note:"Per LF including hangers"},
+    {name:"Deck framing — wood",unit:"SF",mat:12,lab:14,indLow:22,indHigh:45,note:"Pressure treated, footings included"},
+    {name:"Room addition framing",unit:"SF",mat:9,lab:12,indLow:18,indHigh:35,note:"All framing, sheathing, hardware"},
+  ],
+  roofing:[
+    {name:"Asphalt shingle re-roof",unit:"SQ",mat:160,lab:140,indLow:400,indHigh:800,note:"30-yr arch shingle, felt, caps"},
+    {name:"Concrete tile re-roof",unit:"SQ",mat:250,lab:250,indLow:800,indHigh:2200,note:"S-tile or W-tile, new battens"},
+    {name:"TPO flat roof membrane",unit:"SQ",mat:180,lab:160,indLow:500,indHigh:1200,note:"60 mil, mechanically fastened"},
+    {name:"Torch down modified bitumen",unit:"SQ",mat:200,lab:180,indLow:550,indHigh:1200,note:"2-ply SBS system"},
+    {name:"Roof tear-off — 1 layer",unit:"SQ",mat:15,lab:75,indLow:100,indHigh:200,note:"Strip + dispose per square"},
+    {name:"Sheathing replacement",unit:"EA",mat:50,lab:35,indLow:100,indHigh:180,note:"4×8 sheet replacement"},
+    {name:"Step / counter flashing",unit:"LF",mat:4,lab:8,indLow:12,indHigh:28,note:"Lead or galv, installed"},
+    {name:"Roof repair — patch",unit:"EA",mat:80,lab:150,indLow:300,indHigh:900,note:"Per repair location"},
+    {name:"Gutter install — aluminum",unit:"LF",mat:5,lab:6,indLow:12,indHigh:22,note:"5\" K-style, painted"},
+    {name:"Skylight installation",unit:"EA",mat:500,lab:600,indLow:1200,indHigh:3500,note:"Fixed unit, curb mount"},
+  ],
+  drywall:[
+    {name:"Drywall hang + tape + finish",unit:"SF",mat:0.70,lab:1.40,indLow:2.50,indHigh:4.50,note:"1/2\" standard, Level 4"},
+    {name:"Drywall Level 5 / skim coat",unit:"SF",mat:0.70,lab:2.30,indLow:4,indHigh:7,note:"Sand-ready for high gloss"},
+    {name:"5/8\" Type X fire-rated",unit:"SF",mat:0.90,lab:1.40,indLow:3,indHigh:5.50,note:"Garages, party walls"},
+    {name:"Drywall ceiling",unit:"SF",mat:0.70,lab:1.80,indLow:3,indHigh:5.50,note:"Includes ceiling labor premium"},
+    {name:"Drywall patch / repair",unit:"EA",mat:15,lab:65,indLow:150,indHigh:400,note:"2 SF or less, tape + finish"},
+    {name:"Metal stud partition framing",unit:"SF",mat:0.80,lab:1.20,indLow:2,indHigh:4,note:"3-5/8\" studs, 16\" OC"},
+    {name:"Beadboard / wainscoting",unit:"SF",mat:3,lab:3,indLow:8,indHigh:18,note:"Painted MDF, installed"},
+    {name:"Coffered ceiling framing",unit:"SF",mat:4,lab:6,indLow:12,indHigh:25,note:"Per SF of ceiling area"},
+  ],
+  electrical:[
+    {name:"Electrical rough-in — new",unit:"SF",mat:2,lab:3,indLow:4,indHigh:9,note:"All branch circuits + devices"},
+    {name:"200A panel upgrade",unit:"EA",mat:1200,lab:1500,indLow:2500,indHigh:5500,note:"New panel, main breaker, permit"},
+    {name:"Add circuit — 20A",unit:"EA",mat:80,lab:160,indLow:250,indHigh:500,note:"Panel to device, romex, 1 breaker"},
+    {name:"Recessed can light — 6\"",unit:"EA",mat:35,lab:60,indLow:100,indHigh:250,note:"LED retrofit, new construction"},
+    {name:"Outlet / switch install",unit:"EA",mat:12,lab:45,indLow:75,indHigh:180,note:"Standard, in-wall"},
+    {name:"EV charger — Level 2 (240V)",unit:"EA",mat:250,lab:350,indLow:600,indHigh:2000,note:"50A circuit, NEMA 14-50"},
+    {name:"Smoke / CO detector",unit:"EA",mat:45,lab:55,indLow:120,indHigh:250,note:"Hardwired, interconnected"},
+    {name:"Full house rewire",unit:"EA",mat:4000,lab:6000,indLow:8000,indHigh:20000,note:"1500–2000 SF, new service"},
+    {name:"Under-cabinet lighting",unit:"LF",mat:18,lab:22,indLow:45,indHigh:100,note:"LED strip, hardwired"},
+    {name:"Panel subpanel — 100A",unit:"EA",mat:800,lab:700,indLow:1500,indHigh:3500,note:"Subpanel + feeder"},
+  ],
+  plumbing:[
+    {name:"Plumbing rough-in — new",unit:"EA",mat:3500,lab:5000,indLow:8000,indHigh:15000,note:"Full 3-bed house rough-in"},
+    {name:"Bathroom remodel plumbing",unit:"EA",mat:1200,lab:2000,indLow:3500,indHigh:8000,note:"Full bath, plumbing only"},
+    {name:"Water heater replacement",unit:"EA",mat:600,lab:400,indLow:800,indHigh:2800,note:"Tank 40–50 gal, installed"},
+    {name:"Tankless water heater",unit:"EA",mat:1200,lab:800,indLow:2500,indHigh:5000,note:"Gas or electric, installed"},
+    {name:"Sewer lateral replacement",unit:"EA",mat:2000,lab:3000,indLow:4000,indHigh:12000,note:"Excavate, replace, patch"},
+    {name:"Whole-house repipe — PEX",unit:"EA",mat:2500,lab:4000,indLow:5000,indHigh:15000,note:"Typical 3-bed home"},
+    {name:"Toilet replacement",unit:"EA",mat:250,lab:180,indLow:400,indHigh:900,note:"Standard elongated, installed"},
+    {name:"Sink / faucet install",unit:"EA",mat:200,lab:150,indLow:350,indHigh:800,note:"Kitchen or bath"},
+    {name:"Shower pan / drain install",unit:"EA",mat:350,lab:450,indLow:800,indHigh:2000,note:"Tile-ready or prefab"},
+    {name:"Hose bib / exterior outlet",unit:"EA",mat:40,lab:80,indLow:120,indHigh:300,note:"New rough-in and trim"},
+  ],
+  hvac:[
+    {name:"Split system AC — new install",unit:"EA",mat:3000,lab:2500,indLow:7000,indHigh:16000,note:"Typical residential, permit"},
+    {name:"Ductwork — full house",unit:"EA",mat:1500,lab:2000,indLow:3000,indHigh:8000,note:"Sheet metal, insulated"},
+    {name:"Mini-split / ductless — 1 zone",unit:"EA",mat:1200,lab:900,indLow:2500,indHigh:5500,note:"Installed, 12,000–18,000 BTU"},
+    {name:"Furnace replacement",unit:"EA",mat:1800,lab:800,indLow:3000,indHigh:7000,note:"80K BTU, forced air, installed"},
+    {name:"HVAC service / tune-up",unit:"EA",mat:30,lab:150,indLow:150,indHigh:400,note:"Filter, coil, refrigerant check"},
+    {name:"Duct cleaning",unit:"EA",mat:50,lab:250,indLow:300,indHigh:700,note:"Full house, all registers"},
+    {name:"Thermostat replacement — smart",unit:"EA",mat:120,lab:80,indLow:200,indHigh:500,note:"Nest or Ecobee, installed"},
+    {name:"Attic insulation — blown",unit:"SF",mat:0.80,lab:0.70,indLow:1.50,indHigh:4,note:"R-38 blown cellulose"},
+  ],
+  painting:[
+    {name:"Interior paint — walls",unit:"SF",mat:0.55,lab:1.20,indLow:2,indHigh:4,note:"2 coats latex, prep included"},
+    {name:"Exterior paint — stucco",unit:"SF",mat:0.60,lab:1.40,indLow:2.50,indHigh:5,note:"Elastomeric, full prep"},
+    {name:"Interior full house — 2000 SF",unit:"EA",mat:1200,lab:3500,indLow:5000,indHigh:12000,note:"All walls, ceilings, trim"},
+    {name:"Cabinet repaint — spray",unit:"EA",mat:300,lab:1000,indLow:1200,indHigh:3500,note:"Typical kitchen, both sides"},
+    {name:"Exterior trim / fascia",unit:"LF",mat:0.40,lab:0.80,indLow:1.50,indHigh:4,note:"Per LF trim, brush"},
+    {name:"Epoxy floor coating",unit:"SF",mat:1.50,lab:1.50,indLow:4,indHigh:9,note:"Garage or shop floor"},
+    {name:"Deck stain / seal",unit:"SF",mat:0.40,lab:0.60,indLow:1.50,indHigh:4,note:"Prep + 2-coat stain"},
+    {name:"Texture — knockdown ceiling",unit:"SF",mat:0.20,lab:0.55,indLow:0.80,indHigh:2,note:"Spray knockdown texture"},
+  ],
+  tile:[
+    {name:"Floor tile — 12×12 or 12×24",unit:"SF",mat:3,lab:5,indLow:8,indHigh:18,note:"Porcelain or ceramic, thin-set"},
+    {name:"Floor tile — large format 24×24",unit:"SF",mat:4,lab:7,indLow:10,indHigh:22,note:"Leveling clips, large format"},
+    {name:"Shower tile — full shower",unit:"EA",mat:800,lab:1200,indLow:3500,indHigh:10000,note:"Walls + floor, waterproof membrane"},
+    {name:"Backsplash tile",unit:"SF",mat:5,lab:7,indLow:15,indHigh:35,note:"Kitchen or bath backsplash"},
+    {name:"Natural stone floor",unit:"SF",mat:7,lab:8,indLow:14,indHigh:35,note:"Marble, travertine, slate"},
+    {name:"Tile demo / removal",unit:"SF",mat:0,lab:2.50,indLow:2,indHigh:6,note:"Chip out, bag, dispose"},
+    {name:"Grout / recolor existing",unit:"SF",mat:0.50,lab:1.50,indLow:2,indHigh:5,note:"Grout cleaning + recolor"},
+    {name:"Shower niche installation",unit:"EA",mat:80,lab:150,indLow:300,indHigh:700,note:"Framed, tile-ready, installed"},
+  ],
+  flooring:[
+    {name:"Luxury vinyl plank — LVP",unit:"SF",mat:2.50,lab:1.80,indLow:5,indHigh:9,note:"Click-lock, mid-grade"},
+    {name:"Engineered hardwood",unit:"SF",mat:5,lab:3,indLow:8,indHigh:15,note:"3/8\"–1/2\", glue or float"},
+    {name:"Solid hardwood — site finish",unit:"SF",mat:7,lab:5,indLow:12,indHigh:22,note:"Sand + finish included"},
+    {name:"Carpet + pad",unit:"SF",mat:2.50,lab:0.80,indLow:3,indHigh:7,note:"Mid-grade carpet + 7/16\" pad"},
+    {name:"Laminate flooring",unit:"SF",mat:1.50,lab:1.50,indLow:4,indHigh:8,note:"AC4 laminate, click-lock"},
+    {name:"Subfloor repair / patch",unit:"SF",mat:2,lab:4,indLow:6,indHigh:14,note:"Sistering joists, new ply patch"},
+    {name:"Floor leveling compound",unit:"SF",mat:0.80,lab:1.20,indLow:2,indHigh:5,note:"Self-leveling, up to 1\""},
+  ],
+  stucco:[
+    {name:"3-coat stucco — exterior",unit:"SF",mat:4,lab:6,indLow:9,indHigh:18,note:"Scratch, brown, finish coat"},
+    {name:"1-coat stucco over foam",unit:"SF",mat:3,lab:4,indLow:7,indHigh:14,note:"EIFS-style, foam board"},
+    {name:"Stucco repair / patch",unit:"EA",mat:80,lab:180,indLow:300,indHigh:1500,note:"Match texture and color"},
+    {name:"Stucco re-coat / repaint",unit:"SF",mat:0.60,lab:1.20,indLow:2,indHigh:5,note:"Elastomeric over existing"},
+    {name:"Lath — metal wire",unit:"SF",mat:0.60,lab:0.80,indLow:1.50,indHigh:3,note:"Self-furred metal lath"},
+  ],
+  masonry:[
+    {name:"CMU block wall — 6 ft",unit:"LF",mat:25,lab:35,indLow:55,indHigh:90,note:"Standard 8×8×16 block, mortar"},
+    {name:"Brick veneer — wall",unit:"SF",mat:6,lab:9,indLow:18,indHigh:40,note:"Face brick, mortar, ties"},
+    {name:"Stone veneer — natural",unit:"SF",mat:12,lab:12,indLow:28,indHigh:65,note:"Dry-stack or mortar-set"},
+    {name:"Fireplace — masonry",unit:"EA",mat:3000,lab:4000,indLow:8000,indHigh:25000,note:"Full masonry, including firebox"},
+    {name:"Chimney repair / tuckpoint",unit:"EA",mat:200,lab:400,indLow:800,indHigh:3000,note:"Repoint mortar joints"},
+    {name:"Paver installation",unit:"SF",mat:3,lab:5,indLow:8,indHigh:20,note:"Concrete paver, base compacted"},
+  ],
+  cabinets:[
+    {name:"Kitchen cabinets — semi-custom",unit:"LF",mat:180,lab:60,indLow:300,indHigh:700,note:"Uppers + lowers per LF"},
+    {name:"Kitchen cabinets — custom",unit:"LF",mat:400,lab:80,indLow:600,indHigh:1500,note:"Full custom, installed"},
+    {name:"Countertops — quartz",unit:"SF",mat:45,lab:20,indLow:80,indHigh:180,note:"Fabricate + install, edge included"},
+    {name:"Countertops — granite",unit:"SF",mat:40,lab:20,indLow:70,indHigh:160,note:"Fabricate + install"},
+    {name:"Countertops — laminate",unit:"SF",mat:12,lab:15,indLow:25,indHigh:55,note:"Post-form or custom"},
+    {name:"Bathroom vanity install",unit:"EA",mat:400,lab:150,indLow:600,indHigh:2000,note:"36\" stock vanity, installed"},
+    {name:"Crown molding — installation",unit:"LF",mat:3,lab:4,indLow:8,indHigh:18,note:"MDF or wood, coped corners"},
+    {name:"Built-in shelving / closet",unit:"SF",mat:25,lab:20,indLow:50,indHigh:120,note:"Per SF of shelf area"},
+  ],
+  insulation:[
+    {name:"Batt insulation — walls R-15",unit:"SF",mat:0.60,lab:0.40,indLow:1.13,indHigh:3,note:"Kraft-faced fiberglass"},
+    {name:"Batt insulation — attic R-38",unit:"SF",mat:0.80,lab:0.40,indLow:1.50,indHigh:3.50,note:"Un-faced batts, laid flat"},
+    {name:"Blown-in cellulose — attic",unit:"SF",mat:0.60,lab:0.60,indLow:1.50,indHigh:4,note:"R-38, approximately 10\""},
+    {name:"Spray foam — closed cell",unit:"SF",mat:2,lab:1.50,indLow:4,indHigh:9,note:"2\" thick, ~R-12"},
+    {name:"Rigid foam board — exterior",unit:"SF",mat:1.20,lab:0.80,indLow:2.50,indHigh:5,note:"1\" polyiso or XPS"},
+  ],
+  fencing:[
+    {name:"Wood fence — 6 ft privacy",unit:"LF",mat:18,lab:14,indLow:30,indHigh:60,note:"Cedar or dog-ear pine"},
+    {name:"Chain link fence — 6 ft",unit:"LF",mat:12,lab:12,indLow:22,indHigh:45,note:"Galv. or vinyl coated"},
+    {name:"Wrought iron fence",unit:"LF",mat:35,lab:25,indLow:70,indHigh:140,note:"Powder-coated, standard"},
+    {name:"Vinyl fence — 6 ft",unit:"LF",mat:22,lab:14,indLow:35,indHigh:70,note:"White vinyl, installed"},
+    {name:"Automatic gate — driveway",unit:"EA",mat:1800,lab:800,indLow:3500,indHigh:9000,note:"Slide or swing, operator"},
+    {name:"Wood fence gate",unit:"EA",mat:150,lab:200,indLow:400,indHigh:900,note:"Standard 4-ft walk gate"},
+  ],
+  solar:[
+    {name:"Solar panels — residential",unit:"KW",mat:800,lab:400,indLow:2000,indHigh:4000,note:"Per kW installed"},
+    {name:"Solar panels — commercial",unit:"KW",mat:650,lab:350,indLow:1500,indHigh:3000,note:"Per kW, ground or roof"},
+    {name:"Battery storage — Powerwall",unit:"EA",mat:8000,lab:1200,indLow:12000,indHigh:18000,note:"Tesla or equivalent, installed"},
+    {name:"EV charging — solar integrated",unit:"EA",mat:600,lab:400,indLow:1500,indHigh:3500,note:"EVSE + wiring from solar"},
+  ],
+  demo:[
+    {name:"Full interior gut — house",unit:"SF",mat:0.20,lab:4,indLow:4,indHigh:10,note:"Everything to studs, haul away"},
+    {name:"Kitchen demo",unit:"EA",mat:100,lab:900,indLow:1500,indHigh:4000,note:"Cabinets, tile, drywall out"},
+    {name:"Bathroom demo",unit:"EA",mat:80,lab:650,indLow:1000,indHigh:3000,note:"Full gut, haul away"},
+    {name:"Concrete removal — flatwork",unit:"SF",mat:0.50,lab:3,indLow:3,indHigh:8,note:"Jackhammer + haul"},
+    {name:"Deck removal — wood",unit:"SF",mat:0.20,lab:2,indLow:2,indHigh:6,note:"Demo + disposal"},
+    {name:"Dumpster rental — 20 yd",unit:"EA",mat:500,lab:0,indLow:450,indHigh:650,note:"7-day rental, debris included"},
+  ],
+  other:[
+    {name:"Custom / other scope",unit:"EA",mat:0,lab:0,indLow:0,indHigh:0,note:"Enter your own costs"},
+  ]
+};
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let currentScopes = [];
+let activeTab = 'estimate';
+let historyFilter = 'all';
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Set today's date
+  document.getElementById('job-date').value = new Date().toISOString().split('T')[0];
+  renderHistory();
+  renderBids();
+  renderTrends();
+});
+
+// ══════════════════════════════════════
+// TABS
+// ══════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('screen-' + tab).classList.add('active');
+  activeTab = tab;
+  if (tab === 'history') renderHistory();
+  if (tab === 'bids') renderBids();
+  if (tab === 'trends') renderTrends();
+}
+
+// ══════════════════════════════════════
+// SCOPE ITEMS POPULATE
+// ══════════════════════════════════════
+function populateItems() {
+  const trade = document.getElementById('add-trade').value;
+  const sel = document.getElementById('add-item');
+  sel.innerHTML = '<option value="">-- Select item --</option>';
+  if (!trade || !SCOPE_DB[trade]) return;
+  SCOPE_DB[trade].forEach((item, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = item.name;
+    sel.appendChild(opt);
+  });
+  // Wire up auto-fill on item select
+  sel.onchange = () => {
+    const idx = sel.value;
+    if (idx === '') return;
+    const item = SCOPE_DB[trade][parseInt(idx)];
+    document.getElementById('add-unit').value = item.unit;
+    document.getElementById('add-mat').value = item.mat;
+    document.getElementById('add-lab').value = item.lab;
+    document.getElementById('add-desc').value = item.note;
+    // Show historical hint
+    showHistoryHint(item.name);
+  };
+}
+
+function showHistoryHint(scopeName) {
+  const hint = document.getElementById('add-history-hint');
+  const history = getFromStorage('am-jobs') || [];
+  const matches = [];
+  history.forEach(job => {
+    job.scopes.forEach(s => {
+      if (s.name && s.name.toLowerCase().includes(scopeName.toLowerCase().slice(0,12))) {
+        matches.push({ jobName: job.name, date: job.date, area: job.area, myPrice: s.myPrice, qty: s.qty, unit: s.unit });
+      }
+    });
+  });
+  if (matches.length === 0) { hint.style.display = 'none'; return; }
+  const sorted = [...matches].sort((a,b) => new Date(a.date)-new Date(b.date));
+  const oldest = sorted[0];
+  const latest = sorted[sorted.length-1];
+  const avg = sorted.reduce((a,m)=>a+m.myPrice,0) / sorted.length;
+
+  let rows = sorted.map((m,i) => {
+    let change = '';
+    if (i > 0) {
+      const pct = ((m.myPrice - sorted[i-1].myPrice) / sorted[i-1].myPrice * 100).toFixed(0);
+      const dir = pct > 0 ? `<span style="color:var(--red)">↑${Math.abs(pct)}%</span>` : pct < 0 ? `<span style="color:var(--green)">↓${Math.abs(pct)}%</span>` : `<span style="color:var(--muted)">→ same</span>`;
+      change = ` ${dir}`;
+    }
+    return `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(46,52,80,0.5);font-size:11px"><span style="color:var(--muted)">${fmtDate(m.date)} · ${m.jobName} (${m.area})</span><span style="font-weight:700;color:var(--text)">${fmt(m.myPrice)}${change}</span></div>`;
+  }).join('');
+
+  let overallChange = '';
+  if (sorted.length > 1) {
+    const pct = ((latest.myPrice - oldest.myPrice) / oldest.myPrice * 100).toFixed(0);
+    const dir = pct > 0 ? `<span style="color:var(--red)">↑${Math.abs(pct)}% overall</span>` : pct < 0 ? `<span style="color:var(--green)">↓${Math.abs(pct)}% overall</span>` : `<span style="color:var(--muted)">no change overall</span>`;
+    overallChange = `<div style="margin-top:6px;font-size:11px;font-weight:600">Avg: <b style="color:var(--orange)">${fmt(avg)}</b> · ${dir} (${sorted.length} jobs)</div>`;
+  }
+
+  hint.innerHTML = `<div style="font-weight:700;font-size:11px;color:var(--yellow);margin-bottom:6px">📊 All previous jobs with this scope:</div>${rows}${overallChange}`;
+  hint.style.display = 'block';
+}
+
+// ══════════════════════════════════════
+// ADD SCOPE LINE
+// ══════════════════════════════════════
+function addScope() {
+  const trade = document.getElementById('add-trade').value;
+  const itemIdx = document.getElementById('add-item').value;
+  const qty = parseFloat(document.getElementById('add-qty').value) || 0;
+  const unit = document.getElementById('add-unit').value || 'EA';
+  const mat = parseFloat(document.getElementById('add-mat').value) || 0;
+  const lab = parseFloat(document.getElementById('add-lab').value) || 0;
+  const desc = document.getElementById('add-desc').value;
+
+  if (!trade) { showToast('Select a trade first'); return; }
+
+  let name = 'Custom Scope';
+  let indLow = 0, indHigh = 0;
+  if (trade !== 'other' && itemIdx !== '' && SCOPE_DB[trade]) {
+    const item = SCOPE_DB[trade][parseInt(itemIdx)];
+    name = item.name;
+    indLow = item.indLow;
+    indHigh = item.indHigh;
+  }
+
+  if (qty <= 0) { showToast('Enter a quantity'); return; }
+
+  const matMkup = parseFloat(document.getElementById('mat-markup').value)/100 || 0.25;
+  const labMkup = parseFloat(document.getElementById('lab-markup').value)/100 || 0.20;
+  const gcProfit = parseFloat(document.getElementById('gc-profit').value)/100 || 0.15;
+
+  const totalMat = mat * qty;
+  const totalLab = lab * qty;
+  const myCost = totalMat + totalLab;
+  const myPrice = (totalMat * (1 + matMkup) + totalLab * (1 + labMkup)) * (1 + gcProfit);
+
+  const scope = {
+    id: Date.now(), trade, name, desc, qty, unit,
+    matUnit: mat, labUnit: lab,
+    totalMat, totalLab, myCost, myPrice,
+    indLow, indHigh,
+    indTotal: ((indLow + indHigh) / 2) * qty
+  };
+
+  currentScopes.push(scope);
+  renderScopes();
+  recalcAll();
+
+  // Reset item fields
+  document.getElementById('add-qty').value = '';
+  document.getElementById('add-history-hint').style.display = 'none';
+  showToast('Added: ' + name);
+}
+
+// ══════════════════════════════════════
+// RENDER SCOPES
+// ══════════════════════════════════════
+function renderScopes() {
+  const list = document.getElementById('scope-list');
+  const empty = document.getElementById('scope-empty');
+  const totals = document.getElementById('totals-strip');
+  const saveRow = document.getElementById('save-row');
+  const count = document.getElementById('scope-count');
+
+  if (currentScopes.length === 0) {
+    empty.style.display = 'block';
+    totals.style.display = 'none';
+    saveRow.style.display = 'none';
+    count.textContent = '';
+    return;
+  }
+  empty.style.display = 'none';
+  totals.style.display = 'block';
+  saveRow.style.display = 'flex';
+  saveRow.style.flexDirection = 'column';
+  count.textContent = '(' + currentScopes.length + ')';
+
+  list.innerHTML = '';
+  currentScopes.forEach(s => {
+    const indAvg = ((s.indLow + s.indHigh) / 2) * s.qty;
+    let cmpHTML = '';
+    if (s.indLow > 0) {
+      const diff = ((s.myPrice - indAvg) / indAvg * 100).toFixed(0);
+      const absDiff = Math.abs(diff);
+      if (diff > 10) cmpHTML = `<span class="cmp-badge cmp-up">↑${absDiff}% vs market</span>`;
+      else if (diff < -10) cmpHTML = `<span class="cmp-badge cmp-down">↓${absDiff}% vs market</span>`;
+      else cmpHTML = `<span class="cmp-badge cmp-same">✓ On market</span>`;
+    }
+
+    // History hint — ALL previous jobs with this scope
+    let histHint = '';
+    const history = getFromStorage('am-jobs') || [];
+    const matches = [];
+    history.forEach(job => {
+      job.scopes.forEach(sc => {
+        if (sc.name === s.name) matches.push({job, sc});
+      });
+    });
+    if (matches.length > 0) {
+      const sorted = [...matches].sort((a,b) => new Date(a.job.date)-new Date(b.job.date));
+      const avg = sorted.reduce((a,m)=>a+m.sc.myPrice,0) / sorted.length;
+      const oldest = sorted[0];
+      const latest = sorted[sorted.length-1];
+      const overallPct = sorted.length > 1 ? ((latest.sc.myPrice - oldest.sc.myPrice) / oldest.sc.myPrice * 100).toFixed(0) : null;
+      let rows = sorted.map((m,i) => {
+        let change = '';
+        if (i > 0) {
+          const pct = ((m.sc.myPrice - sorted[i-1].sc.myPrice) / sorted[i-1].sc.myPrice * 100).toFixed(0);
+          const col = pct > 0 ? 'var(--red)' : pct < 0 ? 'var(--green)' : 'var(--muted)';
+          const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '→';
+          change = ` <span style="color:${col}">${arrow}${Math.abs(pct)}%</span>`;
+        }
+        const ago = daysSince(m.job.date);
+        return `<div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;border-bottom:1px solid rgba(46,52,80,0.4)"><span style="color:var(--muted)">${fmtDate(m.job.date)} · ${m.job.name} (${m.job.area}) · ${ago}d ago</span><span style="font-weight:700">${fmt(m.sc.myPrice)}${change}</span></div>`;
+      }).join('');
+      const overallLine = overallPct !== null
+        ? `<div style="margin-top:5px;font-size:10px;font-weight:700;color:var(--yellow)">Overall: ${overallPct > 0 ? '↑' : overallPct < 0 ? '↓' : '→'}${Math.abs(overallPct)}% first to last · Avg: ${fmt(avg)}</div>`
+        : `<div style="margin-top:4px;font-size:10px;color:var(--muted)">Only 1 job — save more to see trends</div>`;
+      histHint = `<div class="scope-history-hint"><div style="font-weight:700;font-size:10px;color:var(--yellow);margin-bottom:4px">📊 ${sorted.length} previous job${sorted.length!==1?'s':''} with this scope:</div>${rows}${overallLine}</div>`;
+    }
+
+    list.innerHTML += `
+      <div class="scope-item">
+        <div class="scope-top">
+          <div>
+            <div class="scope-name">${s.name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${s.qty} ${s.unit} · ${s.desc}</div>
+            <div style="margin-top:4px">${cmpHTML}</div>
+          </div>
+          <button class="scope-remove" onclick="removeScope(${s.id})">✕</button>
+        </div>
+        <div class="scope-nums">
+          <div class="scope-num"><div class="scope-num-label">Materials</div><div class="scope-num-val mat">${fmt(s.totalMat)}</div></div>
+          <div class="scope-num"><div class="scope-num-label">Labor</div><div class="scope-num-val lab">${fmt(s.totalLab)}</div></div>
+          <div class="scope-num"><div class="scope-num-label">Your Cost</div><div class="scope-num-val cost">${fmt(s.myCost)}</div></div>
+          <div class="scope-num"><div class="scope-num-label">Your Price</div><div class="scope-num-val price">${fmt(s.myPrice)}</div></div>
+        </div>
+        ${s.indLow > 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:6px">Industry range: ${fmt(s.indLow*s.qty)} – ${fmt(s.indHigh*s.qty)}</div>` : ''}
+        ${histHint}
+      </div>`;
+  });
+}
+
+function removeScope(id) {
+  currentScopes = currentScopes.filter(s => s.id !== id);
+  renderScopes();
+  recalcAll();
+}
+
+// ══════════════════════════════════════
+// RECALC TOTALS
+// ══════════════════════════════════════
+function recalcAll() {
+  // Recalculate all scope prices based on current markups
+  const matMkup = parseFloat(document.getElementById('mat-markup').value)/100 || 0.25;
+  const labMkup = parseFloat(document.getElementById('lab-markup').value)/100 || 0.20;
+  const gcProfit = parseFloat(document.getElementById('gc-profit').value)/100 || 0.15;
+
+  currentScopes.forEach(s => {
+    s.myPrice = (s.totalMat * (1+matMkup) + s.totalLab * (1+labMkup)) * (1+gcProfit);
+  });
+
+  const totMat = currentScopes.reduce((a,s)=>a+s.totalMat,0);
+  const totLab = currentScopes.reduce((a,s)=>a+s.totalLab,0);
+  const totCost = totMat + totLab;
+  const basePrice = currentScopes.reduce((a,s)=>a+s.myPrice,0);
+
+  // Tax calculation — on materials only
+  const taxRate = parseFloat(document.getElementById('tax-rate').value)/100 || 0;
+  const passToClient = document.getElementById('tax-pass-to-client').checked;
+  const matAfterMarkup = totMat * (1 + (parseFloat(document.getElementById('mat-markup').value)/100||0));
+  const taxAmt = matAfterMarkup * taxRate;
+  const totPrice = passToClient ? basePrice + taxAmt : basePrice;
+
+  document.getElementById('t-mat').textContent = fmt(totMat);
+  document.getElementById('t-lab').textContent = fmt(totLab);
+  document.getElementById('t-tax').textContent = fmt(taxAmt);
+  document.getElementById('t-price').textContent = fmt(totPrice);
+  // Update tax strip displays
+  const taxMatEl = document.getElementById('tax-mat-display');
+  const taxTotalEl = document.getElementById('tax-total-display');
+  if (taxMatEl) taxMatEl.textContent = fmt(taxAmt);
+  if (taxTotalEl) taxTotalEl.textContent = fmt(totPrice);
+
+  renderScopes();
+}
+
+// ══════════════════════════════════════
+// SAVE JOB
+// ══════════════════════════════════════
+function saveJob() {
+  if (currentScopes.length === 0) { showToast('Add at least one scope'); return; }
+  const name = document.getElementById('job-name').value || 'Unnamed Job';
+  const city = document.getElementById('job-city').value || '';
+  const area = document.getElementById('job-area').value;
+  const date = document.getElementById('job-date').value || new Date().toISOString().split('T')[0];
+  const type = document.getElementById('job-type').value;
+
+  const totMat = currentScopes.reduce((a,s)=>a+s.totalMat,0);
+  const totLab = currentScopes.reduce((a,s)=>a+s.totalLab,0);
+  const totCost = totMat + totLab;
+  const totPrice = currentScopes.reduce((a,s)=>a+s.myPrice,0);
+
+  const job = {
+    id: Date.now(),
+    name, city, area, date, type,
+    scopes: currentScopes.map(s => ({...s})),
+    totalMat: totMat, totalLab: totLab, totalCost: totCost, totalPrice: totPrice
+  };
+
+  const jobs = getFromStorage('am-jobs') || [];
+  jobs.push(job);
+  saveToStorage('am-jobs', jobs);
+  showToast('✅ Job saved to history!');
+  renderScopes(); // Refresh history hints
+  renderHistory();
+  renderTrends();
+}
+
+function clearAll() {
+  if (currentScopes.length === 0) return;
+  currentScopes = [];
+  renderScopes();
+  document.getElementById('job-name').value = '';
+  document.getElementById('job-city').value = '';
+  showToast('Estimate cleared');
+}
+
+// ══════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════
+function filterHistory(filter, el) {
+  historyFilter = filter;
+  document.querySelectorAll('#hist-filters .loc-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const jobs = getFromStorage('am-jobs') || [];
+  const filtered = historyFilter === 'all' ? jobs : jobs.filter(j => j.area === historyFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📁</div><div class="empty-title">No jobs${historyFilter!=='all'?' in this area':''} yet</div><div class="empty-text">Save an estimate and it appears here for comparison.</div></div>`;
+    return;
+  }
+
+  // Sort newest first
+  const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+  list.innerHTML = sorted.map(job => `
+    <div class="job-card" onclick="expandJob(${job.id})">
+      <div class="job-card-top">
+        <div class="job-card-name">${job.name}</div>
+        <div class="job-card-price">${fmt(job.totalPrice)}</div>
+      </div>
+      <div class="job-card-meta">
+        <div class="job-meta-pill">${fmtDate(job.date)}</div>
+        <div class="job-meta-pill loc">${job.area}${job.city ? ' · '+job.city : ''}</div>
+        <div class="job-meta-pill">${job.type}</div>
+        <div class="job-meta-pill">${job.scopes.length} scope${job.scopes.length!==1?'s':''}</div>
+      </div>
+      <div id="job-expand-${job.id}" style="display:none;margin-top:12px">
+        ${job.scopes.map(s => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <div>
+              <div style="font-weight:600;color:var(--text)">${s.name}</div>
+              <div style="color:var(--muted)">${s.qty} ${s.unit} · Mat: ${fmt(s.totalMat)} · Lab: ${fmt(s.totalLab)}</div>
+            </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--orange)">${fmt(s.myPrice)}</div>
+          </div>`).join('')}
+        <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:2px solid var(--border)">
+          <div style="font-size:12px;color:var(--muted)">Materials: ${fmt(job.totalMat)} · Labor: ${fmt(job.totalLab)}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--orange)">Total: ${fmt(job.totalPrice)}</div>
+        </div>
+        <button class="btn btn-red btn-sm" style="margin-top:10px;width:100%" onclick="deleteJob(${job.id},event)">🗑 Delete Job</button>
+      </div>
+    </div>`).join('');
+}
+
+function expandJob(id) {
+  const el = document.getElementById('job-expand-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function deleteJob(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this job from history?')) return;
+  let jobs = getFromStorage('am-jobs') || [];
+  jobs = jobs.filter(j => j.id !== id);
+  saveToStorage('am-jobs', jobs);
+  renderHistory();
+  renderTrends();
+  showToast('Job deleted');
+}
+
+// ══════════════════════════════════════
+// SUB BIDS
+// ══════════════════════════════════════
+async function parseBid() {
+  const sub = document.getElementById('bid-sub').value;
+  const trade = document.getElementById('bid-trade').value;
+  const loc = document.getElementById('bid-loc').value;
+  const area = document.getElementById('bid-area').value;
+  const text = document.getElementById('bid-text').value;
+
+  if (!text.trim()) { showToast('Paste the proposal text first'); return; }
+
+  const out = document.getElementById('bid-ai-output');
+  const btn = document.getElementById('bid-parse-btn');
+  out.style.display = 'block';
+  out.innerHTML = '<span class="ai-thinking">🤖 AI is reading the proposal…</span>';
+  btn.disabled = true;
+
+  try {
+    const prompt = `You are a construction estimating assistant for A&M Construction in Los Angeles/Inland Empire California.
+
+Analyze this sub-contractor proposal and extract ALL line items, quantities, unit prices, and totals.
+
+Return ONLY a JSON object in this exact format:
+{
+  "subName": "company name",
+  "trade": "trade category",
+  "totalBid": 12345.00,
+  "items": [
+    {"description": "item name", "qty": 1, "unit": "EA", "unitPrice": 500, "total": 500, "note": "any scope notes"}
+  ],
+  "summary": "2-3 sentence plain English summary of the bid scope"
+}
+
+Proposal text:
+${text}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+
+    const data = await response.json();
+    const raw = data.content[0].text;
+    const clean = raw.replace(/```json|```/g,'').trim();
+    let parsed;
+    try { parsed = JSON.parse(clean); } catch(e) { parsed = null; }
+
+    if (!parsed) throw new Error('Could not parse response');
+
+    // Store the bid
+    const bid = {
+      id: Date.now(),
+      subName: sub || parsed.subName || 'Unknown Sub',
+      trade: trade || parsed.trade,
+      location: loc, area,
+      date: new Date().toISOString().split('T')[0],
+      totalBid: parsed.totalBid || 0,
+      items: parsed.items || [],
+      summary: parsed.summary || '',
+      rawText: text
+    };
+
+    const bids = getFromStorage('am-bids') || [];
+    bids.push(bid);
+    saveToStorage('am-bids', bids);
+
+    out.innerHTML = `
+      <div class="ai-tag">✓ Bid Saved</div>
+      <div style="margin-bottom:8px;font-weight:600">${bid.subName} · ${fmt(bid.totalBid)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${bid.summary}</div>
+      ${bid.items.map(i => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)"><span>${i.description} (${i.qty} ${i.unit})</span><span style="color:var(--green);font-weight:700">${fmt(i.total)}</span></div>`).join('')}`;
+
+    document.getElementById('bid-text').value = '';
+    renderBids();
+    renderTrends();
+
+  } catch(err) {
+    out.innerHTML = `<span style="color:var(--red)">Error reading proposal. Paste the text again and try once more.</span>`;
+  }
+  btn.disabled = false;
+}
+
+function renderBids() {
+  const list = document.getElementById('bids-list');
+  const bids = getFromStorage('am-bids') || [];
+  if (bids.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-title">No sub bids yet</div><div class="empty-text">Paste a sub proposal above and AI will read it.</div></div>`;
+    return;
+  }
+  const sorted = [...bids].sort((a,b) => new Date(b.date) - new Date(a.date));
+  list.innerHTML = sorted.map(bid => `
+    <div class="bid-card">
+      <div class="bid-card-top">
+        <div>
+          <div class="bid-sub-name">${bid.subName}</div>
+          <div style="font-size:11px;color:var(--muted)">${bid.trade} · ${bid.area}${bid.location?' · '+bid.location:''} · ${fmtDate(bid.date)}</div>
+        </div>
+        <div class="bid-total">${fmt(bid.totalBid)}</div>
+      </div>
+      ${bid.summary ? `<div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">${bid.summary}</div>` : ''}
+      ${bid.items.slice(0,4).map(i => `<div class="bid-item-row"><span class="bid-item-desc">${i.description} (${i.qty} ${i.unit})</span><span class="bid-item-price">${fmt(i.total)}</span></div>`).join('')}
+      ${bid.items.length > 4 ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">+${bid.items.length-4} more items</div>` : ''}
+      <button class="btn btn-red btn-sm" style="margin-top:10px;width:100%" onclick="deleteBid(${bid.id})">🗑 Delete</button>
+    </div>`).join('');
+}
+
+function deleteBid(id) {
+  if (!confirm('Delete this bid?')) return;
+  let bids = getFromStorage('am-bids') || [];
+  bids = bids.filter(b => b.id !== id);
+  saveToStorage('am-bids', bids);
+  renderBids();
+  renderTrends();
+  showToast('Bid deleted');
+}
+
+// ══════════════════════════════════════
+// TRENDS
+// ══════════════════════════════════════
+function renderTrends() {
+  const div = document.getElementById('trends-content');
+  const jobs = getFromStorage('am-jobs') || [];
+  const bids = getFromStorage('am-bids') || [];
+
+  if (jobs.length < 2 && bids.length === 0) {
+    div.innerHTML = `<div class="empty-state"><div class="empty-icon">📈</div><div class="empty-title">Building your price history</div><div class="empty-text">Save more jobs to start seeing price trends. The more you add, the sharper this gets.</div></div>`;
+    return;
+  }
+
+  // Build scope price map over time
+  const scopeMap = {};
+  jobs.forEach(job => {
+    job.scopes.forEach(s => {
+      if (!scopeMap[s.name]) scopeMap[s.name] = [];
+      scopeMap[s.name].push({
+        date: job.date, price: s.myPrice, qty: s.qty, unit: s.unit,
+        jobName: job.name, area: job.area
+      });
+    });
+  });
+
+  // Only show scopes with 2+ data points
+  const trendsHTML = Object.entries(scopeMap)
+    .filter(([,entries]) => entries.length >= 2)
+    .map(([scope, entries]) => {
+      const sorted = [...entries].sort((a,b) => new Date(a.date)-new Date(b.date));
+      const first = sorted[0];
+      const last = sorted[sorted.length-1];
+      const pct = ((last.price - first.price) / first.price * 100).toFixed(1);
+      const isUp = pct > 2;
+      const isDown = pct < -2;
+      const maxPrice = Math.max(...sorted.map(e=>e.price));
+
+      return `<div class="trend-card">
+        <div class="trend-scope">${scope}</div>
+        ${sorted.map(e => `
+          <div class="trend-bar-wrap">
+            <div class="trend-bar-label">
+              <span class="trend-bar-name">${fmtDate(e.date)} · ${e.jobName} (${e.area})</span>
+              <span class="trend-bar-val" style="color:var(--orange)">${fmt(e.price)}</span>
+            </div>
+            <div class="trend-bar-track">
+              <div class="trend-bar-fill" style="width:${maxPrice>0?(e.price/maxPrice*100).toFixed(0):0}%;background:${isUp?'var(--orange)':isDown?'var(--green)':'var(--blue)'}"></div>
+            </div>
+          </div>`).join('')}
+        <div class="trend-change ${isUp?'up':isDown?'down':'same'}">
+          ${isUp?'📈':'📉'} ${Math.abs(pct)}% ${isUp?'increase':'decrease'} from first to last entry
+          (${first.jobName} → ${last.jobName})
+        </div>
+      </div>`;
+    }).join('');
+
+  // Sub bid summary
+  const bidSummaryHTML = bids.length > 0 ? `
+    <div class="sec-head" style="margin-top:20px">Sub Bid Database — ${bids.length} bid${bids.length!==1?'s':''}</div>
+    ${bids.map(b => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:600;font-size:13px">${b.subName}</div><div style="font-size:11px;color:var(--muted)">${b.trade} · ${b.area} · ${fmtDate(b.date)}</div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--green)">${fmt(b.totalBid)}</div>
+      </div>`).join('')}` : '';
+
+  div.innerHTML = (trendsHTML || `<div class="empty-state" style="padding:20px 0"><div class="empty-title" style="font-size:16px">Save 2+ jobs with same scope to see trends</div></div>`) + bidSummaryHTML;
+}
+
+// ══════════════════════════════════════
+// AI ASK
+// ══════════════════════════════════════
+function quickAsk(q) {
+  document.getElementById('ai-question').value = q;
+  switchTab('ai');
+  askAI();
+}
+
+async function askAI() {
+  const q = document.getElementById('ai-question').value.trim();
+  if (!q) { showToast('Type a question first'); return; }
+
+  const out = document.getElementById('ai-answer');
+  const btn = document.getElementById('ai-ask-btn');
+  out.style.display = 'block';
+  out.innerHTML = '<span class="ai-thinking">🤖 Thinking…</span>';
+  btn.disabled = true;
+
+  const jobs = getFromStorage('am-jobs') || [];
+  const bids = getFromStorage('am-bids') || [];
+
+  const context = `You are A&M Construction's AI estimating assistant. Anthony Perez owns A&M Construction & Consulting in La Verne, CA (CSLB #1148491). He works in the LA / Inland Empire / Orange County market.
+
+Here is his complete job history and sub bid database:
+
+SAVED JOBS (${jobs.length}):
+${jobs.map(j => `- ${j.name} | ${j.area} | ${fmtDate(j.date)} | Total Price: ${fmt(j.totalPrice)} | Scopes: ${j.scopes.map(s => s.name + ' ('+fmt(s.myPrice)+')').join(', ')}`).join('\n')}
+
+SUB BIDS (${bids.length}):
+${bids.map(b => `- ${b.subName} | ${b.trade} | ${b.area} | ${fmtDate(b.date)} | Total: ${fmt(b.totalBid)} | Items: ${b.items.map(i => i.description+' '+fmt(i.total)).join(', ')}`).join('\n')}
+
+Answer Anthony's question in plain English — clear, direct, and specific. If comparing prices over time, calculate the percentage change. If no relevant data exists yet, tell him exactly what to save to get that answer in the future.
+
+Question: ${q}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{role:'user', content: context}]
+      })
+    });
+    const data = await response.json();
+    const answer = data.content[0].text;
+    out.innerHTML = `<div class="ai-tag">🤖 AI Answer</div><div style="white-space:pre-wrap;line-height:1.7">${answer}</div>`;
+  } catch(err) {
+    out.innerHTML = `<span style="color:var(--red)">Couldn't reach AI. Check connection and try again.</span>`;
+  }
+  btn.disabled = false;
+}
+
+// ══════════════════════════════════════
+// STORAGE HELPERS
+// ══════════════════════════════════════
+function saveToStorage(key, data) {
+  try {
+    if (window.storage) {
+      window.storage.set(key, JSON.stringify(data));
+    } else {
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+  } catch(e) {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch(e2) {}
+  }
+}
+
+async function getFromStorage(key) {
+  try {
+    if (window.storage) {
+      const res = await window.storage.get(key);
+      return res ? JSON.parse(res.value) : null;
+    }
+  } catch(e) {}
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+// Sync wrapper for render functions (storage may be async)
+function getFromStorageSync(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+// Override sync versions
+const _getFromStorage = getFromStorage;
+function getFromStorage(key) {
+  return getFromStorageSync(key);
+}
+function saveToStorage(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+  try { if (window.storage) window.storage.set(key, JSON.stringify(data)); } catch(e) {}
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function fmt(n) {
+  if (!n && n !== 0) return '$0';
+  return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+function fmtDate(d) {
+  if (!d) return '';
+  try { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}); }
+  catch(e) { return d; }
+}
+function daysSince(d) {
+  if (!d) return '?';
+  try { return Math.round((Date.now() - new Date(d + 'T12:00:00').getTime()) / 86400000); }
+  catch(e) { return '?'; }
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+
+// ══════════════════════════════════════
+// MEASUREMENT FILE UPLOAD
+// ══════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleMeasFile(input) {
+  const file = input.files[0];
+  if (file) processFile(file);
+  input.value = '';
+}
+
+async function processFile(file) {
+  const zone = document.getElementById('upload-zone');
+  const wrap = document.getElementById('meas-result-wrap');
+  zone.classList.add('loading');
+  zone.querySelector('.upload-cta').textContent = '🤖 AI is reading your file…';
+  wrap.style.display = 'none';
+
+  try {
+    let content = '';
+    const isImage = file.type.startsWith('image/') || file.name.match(/\.(png|jpg|jpeg|webp)$/i);
+    const isPDF = file.type === 'application/pdf' || file.name.endsWith('.pdf');
+
+    if (isPDF || isImage) {
+      // Convert to base64 for AI vision
+      const b64 = await fileToBase64(file);
+      const mediaType = isPDF ? 'application/pdf' : file.type || 'image/jpeg';
+
+      const msgContent = isPDF
+        ? [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
+            { type: 'text', text: getMeasPrompt() }
+          ]
+        : [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
+            { type: 'text', text: getMeasPrompt() }
+          ];
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: msgContent }]
+        })
+      });
+      const data = await response.json();
+      content = data.content[0].text;
+
+    } else {
+      // Plain text / CSV
+      const text = await file.text();
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: getMeasPrompt() + '\n\nFile contents:\n' + text.slice(0, 8000) }]
+        })
+      });
+      const data = await response.json();
+      content = data.content[0].text;
+    }
+
+    // Parse JSON from AI response
+    const clean = content.replace(/```json|```/g, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(clean); } catch(e) {
+      // Try to extract JSON object from response
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else throw new Error('No JSON found');
+    }
+
+    renderMeasResults(parsed, file.name);
+
+  } catch(err) {
+    wrap.style.display = 'block';
+    wrap.innerHTML = `<div class="meas-result"><div style="color:var(--red);font-size:13px">⚠️ Couldn't read this file. Try exporting from ArcSite as PDF or image, then upload again. Error: ${err.message}</div></div>`;
+  }
+
+  zone.classList.remove('loading');
+  zone.querySelector('.upload-cta').textContent = '📂 Tap to Upload Another File';
+}
+
+function getMeasPrompt() {
+  return `You are a construction estimating assistant for A&M Construction in Los Angeles/Inland Empire California.
+
+Analyze this measurement file or plan export (which may be from ArcSite, Magicplan, Canvas, PlanSwift, or any other takeoff/measurement app) and extract ALL measurements, room dimensions, and areas.
+
+Return ONLY a JSON object in this exact format — no extra text:
+{
+  "projectName": "name or address if visible, else null",
+  "sourceApp": "app name if identifiable, else 'Unknown app'",
+  "totalSF": 1250,
+  "measurements": [
+    {
+      "area": "Room or zone name (e.g. Master Bedroom, Kitchen, Total Floor)",
+      "length": 14.5,
+      "width": 12.0,
+      "sqft": 174,
+      "lf": 53,
+      "height": 9,
+      "unit": "SF",
+      "trade": "flooring",
+      "note": "any relevant detail"
+    }
+  ],
+  "summary": "2-sentence plain English summary of what was measured"
+}
+
+For each measurement:
+- Calculate sqft (length × width) and lf (perimeter: 2×length + 2×width)
+- Assign the most likely trade: flooring, painting, drywall, roofing, concrete, framing, tile, etc.
+- If you see a total building area, include it as an entry
+- Extract every dimension you can find
+- If it's a roof measurement include pitch info in note`;
+}
+
+function renderMeasResults(data, filename) {
+  const wrap = document.getElementById('meas-result-wrap');
+  wrap.style.display = 'block';
+
+  const addedSet = new Set();
+
+  let rows = (data.measurements || []).map((m, i) => {
+    const displayVal = m.sqft ? `${m.sqft.toLocaleString()} SF` : m.lf ? `${m.lf} LF` : `${m.length}×${m.width}`;
+    return `
+      <div class="meas-row" id="mrow-${i}">
+        <div class="meas-row-left">
+          <div class="meas-row-name">${m.area}</div>
+          <div class="meas-row-detail">${m.length ? m.length+'ft × '+m.width+'ft' : ''} ${m.height ? '· H: '+m.height+'ft' : ''} ${m.note ? '· '+m.note : ''} · <span style="color:var(--blue)">${m.trade||''}</span></div>
+        </div>
+        <div class="meas-row-val">${displayVal}</div>
+        <button class="meas-add-btn" id="meas-btn-${i}" onclick="addMeasToScope(${i}, '${(m.area||'').replace(/'/g,"\'")}', ${m.sqft||m.lf||0}, '${m.sqft?'SF':'LF'}', '${m.trade||'other'}', this)">＋ Add</button>
+      </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="meas-result">
+      <div class="meas-result-head">
+        <div>
+          <div class="meas-result-title">✅ ${data.measurements ? data.measurements.length : 0} Measurements Found</div>
+          <div class="meas-result-sub">${data.sourceApp || 'Measurement file'} · ${data.projectName || filename} · Total: ${data.totalSF ? data.totalSF.toLocaleString()+' SF' : 'see below'}</div>
+        </div>
+      </div>
+      ${data.summary ? `<div style="font-size:12px;color:var(--muted);margin-bottom:10px;padding:8px;background:rgba(59,130,246,0.08);border-radius:8px;border:1px solid rgba(59,130,246,0.2)">${data.summary}</div>` : ''}
+      ${rows}
+      <button class="btn btn-green btn-block meas-add-all" onclick="addAllMeasToScope()">＋ Add All Measurements to Estimate</button>
+    </div>`;
+
+  // Store for batch add
+  window._lastMeasData = data;
+}
+
+function addMeasToScope(idx, areaName, qty, unit, trade, btn) {
+  if (!qty) { showToast('No quantity found for this item'); return; }
+  // Pre-fill the add scope form
+  const tradeEl = document.getElementById('add-trade');
+  const qtyEl = document.getElementById('add-qty');
+  const unitEl = document.getElementById('add-unit');
+  const descEl = document.getElementById('add-desc');
+
+  // Map trade to SCOPE_DB key
+  const tradeMap = { flooring:'flooring', painting:'painting', drywall:'drywall',
+    roofing:'roofing', concrete:'concrete', framing:'framing', tile:'tile',
+    electrical:'electrical', plumbing:'plumbing', hvac:'hvac',
+    stucco:'stucco', masonry:'masonry', insulation:'insulation', demo:'demo' };
+  const mappedTrade = tradeMap[trade] || 'other';
+
+  tradeEl.value = mappedTrade;
+  populateItems();
+  qtyEl.value = qty;
+  unitEl.value = unit;
+  descEl.value = areaName;
+
+  btn.textContent = '✓ Added';
+  btn.classList.add('added');
+  btn.disabled = true;
+
+  // Scroll to add form
+  document.getElementById('add-trade').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('Filled in: ' + areaName + ' · ' + qty + ' ' + unit);
+}
+
+function addAllMeasToScope() {
+  const data = window._lastMeasData;
+  if (!data || !data.measurements) return;
+  let added = 0;
+  data.measurements.forEach((m, i) => {
+    const qty = m.sqft || m.lf;
+    if (!qty) return;
+    const btn = document.getElementById('meas-btn-' + i);
+    if (btn && !btn.disabled) {
+      addMeasToScope(i, m.area, qty, m.sqft ? 'SF' : 'LF', m.trade || 'other', btn);
+      added++;
+    }
+  });
+  showToast('✅ ' + added + ' measurements pre-filled');
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+</script>
+</body>
+</html>
